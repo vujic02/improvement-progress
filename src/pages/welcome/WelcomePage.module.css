@@ -1,0 +1,186 @@
+.screen {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-page);
+  overflow: hidden;
+}
+
+/*
+ * Full-bleed: a fixed 1100px square left bare edges on wide screens. The
+ * negative inset keeps the blur's soft edge outside the viewport.
+ */
+.glow {
+  position: absolute;
+  inset: -12px;
+  background: url('/assets/img/art-glow-blue.jpg') center / cover no-repeat;
+  opacity: 0.22;
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+/* Pulls the eye back to the middle now that the art reaches the edges. */
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    58% 62% at 50% 50%,
+    rgba(2, 5, 21, 0) 0%,
+    rgba(2, 5, 21, 0.42) 68%,
+    rgba(2, 5, 21, 0.82) 100%
+  );
+  pointer-events: none;
+}
+
+.ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(520px, 86vmin);
+  height: min(520px, 86vmin);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 1px solid rgba(0, 117, 255, 0.35);
+  animation: jv-ring 3.6s var(--ease) infinite;
+  pointer-events: none;
+}
+
+.content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 34px;
+  padding: 0 40px 84px;
+  text-align: center;
+}
+
+.bars {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 96px;
+}
+
+.bar {
+  width: 4px;
+  height: 96px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent-cyan) 0%, var(--accent) 100%);
+  transform-origin: center;
+  animation-name: jv-wave;
+  animation-timing-function: var(--ease);
+  animation-iteration-count: infinite;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  min-height: 150px;
+}
+
+.headline {
+  font-size: 60px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.caret {
+  display: inline-block;
+  width: 3px;
+  height: 52px;
+  margin-left: 6px;
+  vertical-align: -8px;
+  background: var(--accent);
+  animation: jv-caret 1s step-end infinite;
+}
+
+.subline {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-muted);
+  max-width: 620px;
+  text-wrap: pretty;
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.progressTrack {
+  width: 260px;
+}
+
+.status {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--text-muted);
+}
+
+.voiceButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0, 117, 255, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(0, 117, 255, 0.55);
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.voiceButton:hover {
+  background: rgba(0, 117, 255, 0.32);
+}
+
+.voiceButton:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+.stamp {
+  position: absolute;
+  bottom: 34px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
+.skip {
+  position: absolute;
+  top: 28px;
+  right: 32px;
+}
+
+@media (max-width: 640px) {
+  .headline {
+    font-size: 38px;
+  }
+
+  .caret {
+    height: 34px;
+  }
+}

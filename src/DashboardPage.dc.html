@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<script src="./ds-base.js"></script>
+<script src="./image-slot.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:#020515}
+a{color:#0075FF;text-decoration:none}a:hover{color:#2CD9FF}
+@keyframes jv-wave{0%,100%{transform:scaleY(.14)}50%{transform:scaleY(1)}}
+@keyframes jv-caret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes jv-ring{0%{transform:scale(.86);opacity:.5}100%{transform:scale(1.35);opacity:0}}
+@keyframes jv-fade{0%{opacity:0}100%{opacity:1}}
+</style>
+</helmet>
+<div style="position:relative;min-height:100vh;background:linear-gradient(159.02deg,#0F123B 12.52%,#090D2E 57.79%,#020515 89.64%);font-family:'Plus Jakarta Sans',-apple-system,sans-serif;color:#fff;overflow:hidden">
+
+<sc-if value="{{ isGreeting }}" hint-placeholder-val="{{ true }}">
+<div style="position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0">
+  <div style="position:absolute;left:50%;top:50%;width:1100px;height:1100px;transform:translate(-50%,-50%);background:url(assets/img/art-glow-blue.jpg) center / cover no-repeat;opacity:.22;filter:blur(2px);pointer-events:none"></div>
+  <div style="position:absolute;left:50%;top:50%;width:520px;height:520px;transform:translate(-50%,-50%);border-radius:50%;border:1px solid rgba(0,117,255,.35);animation:jv-ring 3.6s cubic-bezier(.4,0,.2,1) infinite;pointer-events:none"></div>
+
+  <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:34px;padding:0 40px 84px;text-align:center">
+    <span style="font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#0075FF">{{ greetEyebrow }}</span>
+
+    <div style="display:flex;align-items:center;justify-content:center;gap:5px;height:96px">
+      <sc-for list="{{ bars }}" as="b" hint-placeholder-count="28">
+        <div style="width:4px;height:96px;border-radius:2px;background:linear-gradient(180deg,#2CD9FF 0%,#0075FF 100%);transform-origin:center;animation:jv-wave {{ b.dur }}ms cubic-bezier(.4,0,.2,1) {{ b.delay }}ms infinite"></div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;align-items:center;min-height:150px">
+      <div style="font-size:60px;font-weight:700;line-height:1.15;letter-spacing:-.01em">{{ typedGreeting }}<span style="display:inline-block;width:3px;height:52px;margin-left:6px;vertical-align:-8px;background:#0075FF;animation:jv-caret 1s step-end infinite"></span></div>
+      <div style="font-size:18px;font-weight:400;line-height:1.5;color:#A0AEC0;max-width:620px;text-wrap:pretty">{{ typedSub }}</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+      <div style="width:260px;height:4px;border-radius:2px;background:rgba(255,255,255,.10);overflow:hidden">
+        <div style="height:100%;width:{{ greetProgress }};border-radius:2px;background:linear-gradient(90deg,#0075FF 0%,#2CD9FF 100%);transition:width 250ms cubic-bezier(.4,0,.2,1)"></div>
+      </div>
+      <span style="font-size:12px;font-weight:400;line-height:1;color:#A0AEC0">{{ greetStatus }}</span>
+    </div>
+  </div>
+
+  <div style="position:absolute;bottom:34px;left:0;right:0;display:flex;justify-content:center">
+    <span style="font-size:10px;font-weight:400;letter-spacing:.18em;text-transform:uppercase;color:rgba(160,174,192,.6)">{{ bootStamp }}</span>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isAuth }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:60px 24px">
+  <div style="position:absolute;inset:0;background:url(assets/img/art-jellyfish-violet.jpg) center / cover no-repeat;opacity:.62;pointer-events:none"></div>
+  <div style="position:absolute;inset:0;background:url(assets/img/art-glow-blue.jpg) left center / cover no-repeat;opacity:.5;mix-blend-mode:screen;pointer-events:none"></div>
+  <div style="position:absolute;inset:0;background:radial-gradient(62% 66% at 50% 48%,rgba(2,5,21,.30) 0%,rgba(2,5,21,.20) 48%,rgba(2,5,21,.70) 100%);pointer-events:none"></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(159.02deg,rgba(15,18,59,.34) 12.52%,rgba(9,13,46,.18) 57.79%,rgba(2,5,21,.58) 89.64%);pointer-events:none"></div>
+
+  <div style="position:relative;width:452px;max-width:100%;border-radius:20px;background:linear-gradient(127.57deg,rgba(6,11,40,.94) 19.41%,rgba(10,14,35,.49) 76.65%);backdrop-filter:blur(120px);-webkit-backdrop-filter:blur(120px);padding:38px 34px 34px;display:flex;flex-direction:column;gap:22px">
+    <div style="display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center">
+      <span style="font-size:14px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#fff">Jarvis</span>
+      <span style="font-size:18px;font-weight:700;line-height:1.4;color:#fff">{{ authTitle }}</span>
+      <span style="font-size:14px;font-weight:400;line-height:1.5;color:#A0AEC0;max-width:320px;text-wrap:pretty">{{ authBlurb }}</span>
+    </div>
+
+    <div style="display:flex;gap:6px;padding:5px;border-radius:15px;background:#0F1535;box-shadow:inset 0 0 0 .5px rgba(226,232,240,.3)">
+      <button onClick="{{ showSignIn }}" style="flex:1;height:36px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;transition:background 150ms cubic-bezier(.4,0,.2,1);background:{{ signInBg }};color:{{ signInFg }}">Sign in</button>
+      <button onClick="{{ showRegister }}" style="flex:1;height:36px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;transition:background 150ms cubic-bezier(.4,0,.2,1);background:{{ registerBg }};color:{{ registerFg }}">Register</button>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <sc-if value="{{ isRegister }}" hint-placeholder-val="{{ false }}">
+        <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Input" label="Name" placeholder="Your name" hint-size="100%,75px"></x-import>
+      </sc-if>
+      <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Input" label="Email" type="email" placeholder="Your email address" hint-size="100%,75px"></x-import>
+      <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Input" label="Password" type="password" placeholder="Your password" hint-size="100%,75px"></x-import>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px">
+      <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Switch" checked="{{ true }}" hint-size="46px,24px"></x-import>
+      <span style="font-size:14px;font-weight:400;color:#fff">{{ switchLabel }}</span>
+    </div>
+
+    <div onClick="{{ enterApp }}">
+      <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Button" size="lg" dc-props="{{ ctaProps }}" hint-size="100%,58px">{{ authCta }}</x-import>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="flex:1;height:1px;background:rgba(255,255,255,.12)"></div>
+      <span style="font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#A0AEC0">Or</span>
+      <div style="flex:1;height:1px;background:rgba(255,255,255,.12)"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div onClick="{{ enterApp }}">
+        <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Button" variant="ghost" size="md" dc-props="{{ socialProps }}" hint-size="100%,48px">
+          <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Icon" name="IONIconLLogoApple" size="15" hint-size="15px,15px"></x-import>
+          Apple
+        </x-import>
+      </div>
+      <div onClick="{{ enterApp }}">
+        <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Button" variant="ghost" size="md" dc-props="{{ socialProps }}" hint-size="100%,48px">
+          <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Icon" name="IONIconLLogoGoogle" size="15" hint-size="15px,15px"></x-import>
+          Google
+        </x-import>
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:center;gap:6px;font-size:14px;line-height:1.5">
+      <span style="color:#A0AEC0">{{ authFootPrompt }}</span>
+      <a href="#" onClick="{{ toggleAuthMode }}" style="font-weight:700">{{ authFootLink }}</a>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isApp }}" hint-placeholder-val="{{ false }}">
+<div style="position:relative;display:flex;gap:24px;padding:10px 22px 24px 10px;min-height:100vh">
+  <div style="position:absolute;right:-260px;top:-180px;width:820px;height:820px;background:url(assets/img/art-jellyfish-blue.jpg) center / cover no-repeat;opacity:.18;pointer-events:none"></div>
+
+  <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Sidebar" wordmark="Jarvis" active-id="{{ nav }}" items="{{ navItems }}" groups="{{ navGroups }}" on-select="{{ setNav }}" hint-size="264px,900px" style="position:sticky;top:10px;align-self:flex-start;height:calc(100vh - 34px);min-height:860px;flex-shrink:0"></x-import>
+
+  <div style="position:relative;flex:1;min-width:0;display:flex;flex-direction:column;gap:26px;padding:12px 0 0">
+    <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Navbar" trail="{{ trail }}" title="Dashboard" user="{{ userLabel }}" hint-size="100%,60px"></x-import>
+
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span style="font-family:'DM Sans','Plus Jakarta Sans',sans-serif;font-weight:700;font-size:40px;line-height:1.1">{{ monthTitle }}</span>
+        <span style="font-size:14px;font-weight:400;line-height:1.5;color:#A0AEC0">{{ todayLine }}</span>
+      </div>
+      <div style="display:flex;gap:6px;padding:5px;border-radius:15px;background:#0F1535;box-shadow:inset 0 0 0 .5px rgba(226,232,240,.3)">
+        <button onClick="{{ showWeek }}" style="height:38px;padding:0 22px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;transition:background 150ms cubic-bezier(.4,0,.2,1);background:{{ weekBg }};color:#fff">Weekly</button>
+        <button onClick="{{ showMonth }}" style="height:38px;padding:0 22px;border:none;border-radius:12px;cursor:pointer;font-family:inherit;font-size:10px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;transition:background 150ms cubic-bezier(.4,0,.2,1);background:{{ monthBg }};color:#fff">Monthly</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:24px">
+      <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.StatCard" label="Tasks today" value="{{ kpiToday }}" delta="{{ kpiTodayDelta }}" icon="IONIconCCheckmarkCCircle" style="width:100%" hint-size="100%,80px"></x-import>
+      <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.StatCard" label="Month progress" value="{{ kpiMonth }}" delta="+6%" icon="IONIconSStatsChart" style="width:100%" hint-size="100%,80px"></x-import>
+      <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.StatCard" label="Day streak" value="11" delta="+2" icon="IONIconRRocketSharp" style="width:100%" hint-size="100%,80px"></x-import>
+      <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.StatCard" label="Task types" value="6" delta="+1" icon="IONIconCCubeDefault" style="width:100%" hint-size="100%,80px"></x-import>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px">
+      <div style="position:relative;height:230px;border-radius:20px;overflow:hidden;background:#1A1F37">
+        <image-slot id="card-savings" shape="rect" placeholder="Drop a photo"></image-slot>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,11,40,.86) 0%,rgba(6,11,40,.18) 52%,rgba(6,11,40,.62) 100%);pointer-events:none"></div>
+        <span style="position:absolute;left:26px;bottom:22px;font-size:12px;font-weight:400;line-height:1;white-space:nowrap;color:#fff;pointer-events:none">Open page →</span>
+        <div style="position:absolute;left:26px;right:26px;top:22px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;pointer-events:none">
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <span style="font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#2CD9FF">Wealth</span>
+            <span style="font-size:18px;font-weight:700;line-height:1.4">Savings &amp; investing</span>
+            </div>
+          <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.IconTile" size="45" tone="accent" hint-size="45px,45px">
+            <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Icon" name="IONIconWWalletDefault" size="22.5" hint-size="22px,22px"></x-import>
+          </x-import>
+        </div>
+      </div>
+
+      <div style="position:relative;height:230px;border-radius:20px;overflow:hidden;background:#1A1F37">
+        <image-slot id="card-self" shape="rect" placeholder="Drop a photo"></image-slot>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,11,40,.86) 0%,rgba(6,11,40,.18) 52%,rgba(6,11,40,.62) 100%);pointer-events:none"></div>
+        <span style="position:absolute;left:26px;bottom:22px;font-size:12px;font-weight:400;line-height:1;white-space:nowrap;color:#fff;pointer-events:none">Open page →</span>
+        <div style="position:absolute;left:26px;right:26px;top:22px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;pointer-events:none">
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <span style="font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#4FD1C5">Growth</span>
+            <span style="font-size:18px;font-weight:700;line-height:1.4">Self-improvement</span>
+            </div>
+          <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.IconTile" size="45" tone="accent" hint-size="45px,45px">
+            <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Icon" name="IONIconRRocketSharp" size="22.5" hint-size="22px,22px"></x-import>
+          </x-import>
+        </div>
+      </div>
+
+      <div style="position:relative;height:230px;border-radius:20px;overflow:hidden;background:#1A1F37">
+        <image-slot id="card-goals" shape="rect" placeholder="Drop a photo"></image-slot>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,11,40,.86) 0%,rgba(6,11,40,.18) 52%,rgba(6,11,40,.62) 100%);pointer-events:none"></div>
+        <span style="position:absolute;left:26px;bottom:22px;font-size:12px;font-weight:400;line-height:1;white-space:nowrap;color:#fff;pointer-events:none">Open page →</span>
+        <div style="position:absolute;left:26px;right:26px;top:22px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;pointer-events:none">
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <span style="font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#582CFF">Horizon</span>
+            <span style="font-size:18px;font-weight:700;line-height:1.4">Big goals &amp; dreams</span>
+            </div>
+          <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.IconTile" size="45" tone="accent" hint-size="45px,45px">
+            <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Icon" name="IONIconCCubeSharp" size="22.5" hint-size="22px,22px"></x-import>
+          </x-import>
+        </div>
+      </div>
+    </div>
+
+    <sc-if value="{{ isMonthView }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;gap:24px">
+
+      <div style="border-radius:20px;background:linear-gradient(170.87deg,rgba(6,11,40,.74) 11.86%,rgba(10,14,35,.71) 114.37%);backdrop-filter:blur(120px);-webkit-backdrop-filter:blur(120px);padding:28px 21px 26px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:22px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:18px;font-weight:700;line-height:1.4">Habit grid</span>
+            <span style="font-size:14px;font-weight:400;line-height:1.4;color:#A0AEC0">{{ monthTitle }} — tap a cell to log a day</span>
+          </div>
+          <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.MoreButton" hint-size="37px,37px">
+            <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Icon" name="MoreHoriz" size="24" hint-size="24px,24px"></x-import>
+          </x-import>
+        </div>
+
+        <div style="overflow-x:auto;padding-bottom:6px">
+        <div style="min-width:1180px">
+        <div style="display:grid;grid-template-columns:{{ gridCols }};gap:4px;align-items:center;margin-bottom:6px">
+          <div></div>
+          <sc-for list="{{ monthWeeks }}" as="w" hint-placeholder-count="5">
+            <div style="grid-column:span {{ w.span }};height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:{{ w.tint }};font-size:10px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:#fff">{{ w.label }}</div>
+          </sc-for>
+        </div>
+
+        <div style="display:grid;grid-template-columns:{{ gridCols }};gap:4px;align-items:center">
+          <span style="font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#A0AEC0">My habits</span>
+          <sc-for list="{{ monthDays }}" as="d" hint-placeholder-count="31">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding-bottom:6px">
+              <span style="font-size:10px;font-weight:400;color:#A0AEC0">{{ d.letter }}</span>
+              <span style="font-size:12px;font-weight:700;color:{{ d.numColor }}">{{ d.d }}</span>
+            </div>
+          </sc-for>
+        </div>
+
+        <sc-for list="{{ monthRows }}" as="r" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:{{ gridCols }};gap:4px;align-items:center;padding:3px 0">
+            <div style="display:flex;align-items:center;gap:10px;min-width:0">
+              <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.IconTile" size="25" radius="6" tone="raised" hint-size="25px,25px">
+                <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Icon" name="{{ r.icon }}" size="12.5" style="color:{{ r.color }}" hint-size="13px,13px"></x-import>
+              </x-import>
+              <span style="font-size:14px;font-weight:400;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.label }}</span>
+            </div>
+            <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="31">
+              <div onClick="{{ c.onClick }}" style="height:22px;border-radius:6px;cursor:pointer;background:{{ c.bg }};box-shadow:{{ c.ring }};transition:background 150ms cubic-bezier(.4,0,.2,1)"></div>
+            </sc-for>
+          </div>
+        </sc-for>
+
+        <div style="display:grid;grid-template-columns:{{ gridCols }};gap:4px;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.10)">
+          <span style="font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#A0AEC0">Daily score</span>
+          <sc-for list="{{ monthDays }}" as="d" hint-placeholder-count="31">
+            <div style="display:flex;flex-direction:column;justify-content:flex-end;height:44px">
+              <div style="height:{{ d.scoreH }};border-radius:4px;background:{{ d.scoreBg }}"></div>
+            </div>
+          </sc-for>
+        </div>
+        </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:24px">
+        <div style="border-radius:20px;background:linear-gradient(127.57deg,rgba(6,11,40,.94) 19.41%,rgba(10,14,35,.49) 76.65%);backdrop-filter:blur(120px);-webkit-backdrop-filter:blur(120px);padding:28px 21px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:18px;font-weight:700;line-height:1.4">Today's tasks</span>
+              <span style="font-size:14px;font-weight:400;line-height:1.4;color:#A0AEC0">{{ todayLine }}</span>
+            </div>
+            <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Button" variant="ghost" size="sm" style="min-width:118px" hint-size="118px,35px">Add task</x-import>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:22px">
+            <sc-for list="{{ todayTasks }}" as="t" hint-placeholder-count="6">
+              <div style="display:flex;align-items:center;gap:14px;border-radius:15px;background:linear-gradient(126.97deg,#060C29 28.26%,rgba(4,12,48,.5) 91.2%);padding:14px 16px">
+                <div style="width:20px;height:20px;flex-shrink:0;border-radius:6px;background:{{ t.bg }};box-shadow:{{ t.ring }}"></div>
+                <div style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1">
+                  <span style="font-size:14px;font-weight:400;line-height:1.4;color:{{ t.textColor }};text-decoration:{{ t.strike }}">{{ t.label }}</span>
+                  <span style="font-size:12px;font-weight:400;line-height:1;color:#A0AEC0">{{ t.type }}</span>
+                </div>
+                <div style="width:6px;height:6px;border-radius:50%;background:{{ t.color }}"></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="border-radius:20px;background:linear-gradient(127.57deg,rgba(6,11,40,.94) 19.41%,rgba(10,14,35,.49) 76.65%);backdrop-filter:blur(120px);-webkit-backdrop-filter:blur(120px);padding:28px 21px">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:18px;font-weight:700;line-height:1.4">Analysis</span>
+            <span style="font-size:14px;font-weight:400;line-height:1.4;color:#A0AEC0">By task type, this month</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:18px;margin-top:24px">
+            <sc-for list="{{ monthRows }}" as="r" hint-placeholder-count="6">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+                  <span style="font-size:14px;font-weight:400;line-height:1;color:#fff">{{ r.label }}</span>
+                  <span style="font-size:14px;font-weight:700;line-height:1;color:#A0AEC0">{{ r.pctLabel }}</span>
+                </div>
+                <div style="height:6px;border-radius:3px;background:#22234B;overflow:hidden">
+                  <div style="height:100%;width:{{ r.barW }};border-radius:3px;background:{{ r.color }};transition:width 250ms cubic-bezier(.4,0,.2,1)"></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    </sc-if>
+
+    <sc-if value="{{ isWeekView }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:24px">
+
+      <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:24px">
+        <div style="border-radius:20px;background:linear-gradient(170.87deg,rgba(6,11,40,.74) 11.86%,rgba(10,14,35,.71) 114.37%);backdrop-filter:blur(120px);-webkit-backdrop-filter:blur(120px);padding:28px 21px;display:flex;align-items:center;gap:32px">
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:18px;font-weight:700;line-height:1.4">Overall progress</span>
+              <span style="font-size:14px;font-weight:400;line-height:1.4;color:#A0AEC0">Week of {{ weekStartLabel }}</span>
+            </div>
+            <div style="display:flex;align-items:flex-end;gap:12px;height:132px">
+              <sc-for list="{{ weekDays }}" as="d" hint-placeholder-count="7">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%">
+                  <div style="flex:1;width:100%;display:flex;align-items:flex-end">
+                    <div style="width:100%;height:{{ d.barH }};border-radius:8px;background:{{ d.tint }};transition:height 250ms cubic-bezier(.4,0,.2,1)"></div>
+                  </div>
+                  <span style="font-size:10px;font-weight:400;letter-spacing:.02em;text-transform:uppercase;color:#A0AEC0">{{ d.short }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="width:196px;height:196px;flex-shrink:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:conic-gradient(from 0deg,#0075FF 0deg,#2CD9FF {{ weekDeg }}deg,rgba(255,255,255,.07) {{ weekDeg }}deg)">
+            <div style="width:154px;height:154px;border-radius:50%;background:#060B26;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+              <span style="font-family:'DM Sans','Plus Jakarta Sans',sans-serif;font-size:40px;font-weight:700;line-height:1">{{ weekPctLabel }}</span>
+              <span style="font-size:12px;font-weight:400;color:#A0AEC0">{{ weekDoneLabel }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-radius:20px;background:linear-gradient(127.57deg,rgba(6,11,40,.94) 19.41%,rgba(10,14,35,.49) 76.65%);backdrop-filter:blur(120px);-webkit-backdrop-filter:blur(120px);padding:28px 21px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:18px;font-weight:700;line-height:1.4">Today's tasks</span>
+              <span style="font-size:14px;font-weight:400;line-height:1.4;color:#A0AEC0">{{ todayLine }}</span>
+            </div>
+            <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Button" variant="ghost" size="sm" style="min-width:100px" hint-size="100px,35px">Add task</x-import>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:20px">
+            <sc-for list="{{ todayTasks }}" as="t" hint-placeholder-count="6">
+              <div style="display:flex;align-items:center;gap:12px;border-radius:15px;background:linear-gradient(126.97deg,#060C29 28.26%,rgba(4,12,48,.5) 91.2%);padding:11px 14px">
+                <div style="width:18px;height:18px;flex-shrink:0;border-radius:6px;background:{{ t.bg }};box-shadow:{{ t.ring }}"></div>
+                <span style="flex:1;min-width:0;font-size:14px;font-weight:400;line-height:1.4;color:{{ t.textColor }};text-decoration:{{ t.strike }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.label }}</span>
+                <div style="width:6px;height:6px;border-radius:50%;background:{{ t.color }}"></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(206px,1fr));gap:16px">
+        <sc-for list="{{ weekDays }}" as="d" hint-placeholder-count="7">
+          <div style="border-radius:20px;background:linear-gradient(170.87deg,rgba(6,11,40,.74) 11.86%,rgba(10,14,35,.71) 114.37%);backdrop-filter:blur(120px);-webkit-backdrop-filter:blur(120px);box-shadow:{{ d.cardRing }};padding:22px 16px 18px;display:flex;flex-direction:column;gap:16px;align-items:center">
+            <div style="display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center">
+              <span style="font-size:14px;font-weight:700;line-height:1.4">{{ d.name }}</span>
+              <span style="font-size:12px;font-weight:400;line-height:1;color:#A0AEC0">{{ d.date }}</span>
+            </div>
+
+            <div style="width:108px;height:108px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:conic-gradient(from 0deg,{{ d.tint }} {{ d.deg }}deg,rgba(255,255,255,.07) {{ d.deg }}deg)">
+              <div style="width:84px;height:84px;border-radius:50%;background:#060B26;display:flex;align-items:center;justify-content:center">
+                <span style="font-family:'DM Sans','Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:700;line-height:1">{{ d.pctLabel }}</span>
+              </div>
+            </div>
+
+            <span style="height:22px;padding:0 10px;border-radius:8px;display:flex;align-items:center;background:{{ d.badgeColor }};font-size:10px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:#fff">{{ d.badge }}</span>
+
+            <div style="width:100%;display:flex;flex-direction:column;gap:8px">
+              <span style="font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#A0AEC0">Tasks</span>
+              <sc-for list="{{ d.items }}" as="t" hint-placeholder-count="4">
+                <div style="display:flex;align-items:flex-start;gap:8px">
+                  <div style="width:14px;height:14px;flex-shrink:0;margin-top:2px;border-radius:4px;background:{{ t.bg }};box-shadow:{{ t.ring }}"></div>
+                  <span style="font-size:12px;font-weight:400;line-height:1.35;color:#fff;text-wrap:pretty">{{ t.label }}</span>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="width:100%;display:flex;flex-direction:column;gap:3px;padding-top:12px;border-top:1px solid rgba(255,255,255,.10)">
+              <span style="font-size:12px;font-weight:400;line-height:1.4;color:#01B574">{{ d.doneLabel }}</span>
+              <span style="font-size:12px;font-weight:400;line-height:1.4;color:#A0AEC0">{{ d.openLabel }}</span>
+            </div>
+
+            <div style="width:100%;display:flex;flex-direction:column;gap:6px">
+              <span style="font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#A0AEC0">Mindset</span>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:6px"><span style="font-size:12px;color:#A0AEC0">Energy</span><span style="font-size:12px;font-weight:700">{{ d.energy }}</span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:6px"><span style="font-size:12px;color:#A0AEC0">Focus</span><span style="font-size:12px;font-weight:700">{{ d.focus }}</span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:6px"><span style="font-size:12px;color:#A0AEC0">Motivation</span><span style="font-size:12px;font-weight:700">{{ d.motivation }}</span></div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+
+    </div>
+    </sc-if>
+
+    <x-import component-from-global-scope="VisionUIDashboardDesignSystem_aefacb.Footer" note="{{ footNote }}" links="{{ footLinks }}" hint-size="100%,24px" style="margin-top:8px"></x-import>
+  </div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;userName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Nikola&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Greeting&quot;},&quot;voice&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Greeting&quot;},&quot;typingSpeed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:55,&quot;min&quot;:20,&quot;max&quot;:120,&quot;step&quot;:5,&quot;unit&quot;:&quot;ms&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Greeting&quot;},&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;welcome&quot;,&quot;auth&quot;,&quot;app&quot;],&quot;default&quot;:&quot;welcome&quot;,&quot;tsType&quot;:&quot;'welcome' | 'auth' | 'app'&quot;,&quot;section&quot;:&quot;Flow&quot;},&quot;defaultView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;month&quot;,&quot;week&quot;],&quot;default&quot;:&quot;month&quot;,&quot;tsType&quot;:&quot;'month' | 'week'&quot;,&quot;section&quot;:&quot;Flow&quot;}}">
+const TYPES = [
+  { id: 'deep', label: 'Deep work', color: '#0075FF', icon: 'IONIconBBuildDefault' },
+  { id: 'gym', label: 'Gym / movement', color: '#01B574', icon: 'IONIconRRocketSharp' },
+  { id: 'learn', label: 'Learning', color: '#582CFF', icon: 'IONIconDDocumentText' },
+  { id: 'money', label: 'Money / admin', color: '#F79E1B', icon: 'IONIconWWalletDefault' },
+  { id: 'chores', label: 'Chores / errands', color: '#2CD9FF', icon: 'IONIconCCubeDefault' },
+  { id: 'mind', label: 'Mindset check-in', color: '#4FD1C5', icon: 'TagFaces' },
+];
+const WEEK_TINTS = ['#582CFF', '#0075FF', '#4FD1C5', '#E5399E', '#01B574'];
+const DAY_LETTERS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function seeded(a, b) { const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return x - Math.floor(x); }
+
+class Component extends DCLogic {
+  state = { screen: null, authMode: 'login', view: null, typed: '', sub: '', done: false, checks: {}, nav: 'dashboard' };
+
+  get screen() { return this.state.screen || this.props.startScreen || 'welcome'; }
+  get view() { return this.state.view || this.props.defaultView || 'month'; }
+
+  componentDidMount() { this.playGreeting(this.screen === 'boot' ? 'boot' : 'welcome'); }
+
+  componentWillUnmount() {
+    clearInterval(this.t1); clearInterval(this.t2); clearTimeout(this.t3);
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+  }
+
+  salutation() {
+    const h = new Date().getHours();
+    return h < 5 ? 'Good night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : h < 22 ? 'Good evening' : 'Good night';
+  }
+
+  speak(text) {
+    if (this.props.voice === false) return;
+    const S = window.speechSynthesis;
+    if (!S) return;
+    try {
+      S.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.95; u.pitch = 0.9; u.volume = 1;
+      const pick = (S.getVoices() || []).filter((v) => /en-GB|en_GB|British|Daniel|Arthur/i.test(v.name + ' ' + v.lang))[0];
+      if (pick) u.voice = pick;
+      S.speak(u);
+    } catch (e) { /* speech unavailable */ }
+  }
+
+  playGreeting(kind) {
+    clearInterval(this.t1); clearInterval(this.t2); clearTimeout(this.t3);
+    const name = this.props.userName || 'Nikola';
+    const open = this.dayTasks().filter((t) => !t.done).length;
+    this.line1 = this.salutation() + ', ' + name + '.';
+    this.line2 = kind === 'boot'
+      ? 'Your month is loaded. What are we building today?'
+      : open + ' tasks still open today. What are we building today?';
+    this.setState({ typed: '', sub: '', done: false });
+    this.speak(this.line1.replace('.', ',') + ' ' + this.line2);
+    let i = 0, j = 0;
+    const speed = this.props.typingSpeed || 55;
+    this.t1 = setInterval(() => {
+      i += 1;
+      this.setState({ typed: this.line1.slice(0, i) });
+      if (i >= this.line1.length) {
+        clearInterval(this.t1);
+        this.t2 = setInterval(() => {
+          j += 1;
+          this.setState({ sub: this.line2.slice(0, j) });
+          if (j >= this.line2.length) {
+            clearInterval(this.t2);
+            this.setState({ done: true });
+            this.t3 = setTimeout(() => {
+              this.setState({ screen: kind === 'boot' ? 'app' : 'auth' });
+            }, kind === 'boot' ? 1100 : 1400);
+          }
+        }, Math.max(12, speed * 0.34));
+      }
+    }, speed);
+  }
+
+  dayTasks() {
+    return [
+      { id: 't1', type: 'deep', label: 'Ship the tracker layout', done: true },
+      { id: 't2', type: 'gym', label: 'Push session — 45 min', done: true },
+      { id: 't3', type: 'learn', label: 'Read 20 pages', done: false },
+      { id: 't4', type: 'money', label: 'Move 15% into index fund', done: false },
+      { id: 't5', type: 'chores', label: 'Groceries + laundry', done: false },
+      { id: 't6', type: 'mind', label: 'Evening check-in', done: false },
+    ];
+  }
+
+  isChecked(typeIdx, day, today) {
+    const key = typeIdx + '-' + day;
+    if (this.state.checks[key] !== undefined) return this.state.checks[key];
+    return day <= today && seeded(typeIdx + 1, day) > 0.36;
+  }
+
+  monthData(now) {
+    const today = now.getDate();
+    const year = now.getFullYear(), month = now.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const days = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const wd = new Date(year, month, d).getDay();
+      const weekIdx = Math.floor((d + new Date(year, month, 1).getDay() - 1) / 7);
+      days.push({ d, wd, letter: DAY_LETTERS[wd], weekIdx, tint: WEEK_TINTS[weekIdx % 5], isToday: d === today, future: d > today });
+    }
+    const weeks = [];
+    days.forEach((day) => {
+      if (!weeks[day.weekIdx]) weeks[day.weekIdx] = { idx: day.weekIdx, label: 'Week ' + (day.weekIdx + 1), tint: day.tint, span: 0 };
+      weeks[day.weekIdx].span += 1;
+    });
+    const rows = TYPES.map((t, ti) => {
+      const cells = days.map((day) => {
+        const on = this.isChecked(ti, day.d, today);
+        return {
+          key: ti + '-' + day.d,
+          bg: day.future ? 'transparent' : on ? day.tint : 'transparent',
+          ring: on && !day.future ? 'none' : 'inset 0 0 0 1px ' + (day.future ? 'rgba(255,255,255,.10)' : 'rgba(255,255,255,.28)'),
+          mark: on && !day.future ? 1 : 0,
+          onClick: () => {
+            const key = ti + '-' + day.d;
+            const next = Object.assign({}, this.state.checks);
+            next[key] = !on;
+            this.setState({ checks: next });
+          },
+        };
+      });
+      const elapsed = days.filter((x) => !x.future).length;
+      const hit = days.filter((x) => !x.future && this.isChecked(ti, x.d, today)).length;
+      const pct = Math.round((hit / Math.max(1, elapsed)) * 100);
+      return { id: t.id, label: t.label, color: t.color, icon: t.icon, cells, pct, pctLabel: pct + '%', hit, elapsed, barW: pct + '%' };
+    });
+    days.forEach((day, di) => {
+      const hits = TYPES.filter((t, ti) => this.isChecked(ti, day.d, today)).length;
+      const pct = day.future ? 0 : Math.round((hits / TYPES.length) * 100);
+      day.numColor = day.isToday ? '#0075FF' : day.future ? 'rgba(160,174,192,.55)' : '#fff';
+      day.scoreH = day.future ? '3px' : Math.max(8, pct) + '%';
+      day.scoreBg = day.future ? 'rgba(255,255,255,.10)' : day.tint;
+    });
+    const allElapsed = rows.reduce((a, r) => a + r.elapsed, 0);
+    const allHit = rows.reduce((a, r) => a + r.hit, 0);
+    return { days, weeks: weeks.filter(Boolean), rows, monthPct: Math.round((allHit / Math.max(1, allElapsed)) * 100) };
+  }
+
+  weekData(now) {
+    const today = now.getDate();
+    const start = new Date(now.getFullYear(), now.getMonth(), today - now.getDay());
+    const pool = [
+      ['Ship the tracker layout', 'Review active projects', 'Inbox to zero', 'Plan tomorrow\u2019s top 3'],
+      ['Push session — 45 min', 'Mobility + stretch', 'Zone-2 walk'],
+      ['Read 20 pages', 'Course module 4', 'Write notes'],
+      ['Move 15% into index fund', 'Log weekly spend', 'Check portfolio drift'],
+      ['Groceries + laundry', 'Fix the shelf', 'Car service call'],
+      ['Evening check-in', 'Cold shower', 'No socials before noon'],
+    ];
+    return [0, 1, 2, 3, 4, 5, 6].map((i) => {
+      const dt = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+      const isToday = dt.getDate() === today && dt.getMonth() === now.getMonth();
+      const future = dt > now && !isToday;
+      const tint = WEEK_TINTS[i % 5];
+      const items = [];
+      for (let k = 0; k < 4; k++) {
+        const ti = Math.floor(seeded(i + 2, k + 5) * 6);
+        const label = pool[ti][Math.floor(seeded(i + 7, k + 1) * pool[ti].length)];
+        items.push({
+          key: i + '-' + k,
+          label,
+          color: TYPES[ti].color,
+          type: TYPES[ti].label,
+          done: !future && seeded(i + 11, k + 3) > 0.42,
+          bg: !future && seeded(i + 11, k + 3) > 0.42 ? TYPES[ti].color : 'transparent',
+          ring: !future && seeded(i + 11, k + 3) > 0.42 ? 'none' : 'inset 0 0 0 1px rgba(255,255,255,.28)',
+        });
+      }
+      const done = items.filter((x) => x.done).length;
+      const pct = future ? 0 : Math.round((done / items.length) * 100);
+      return {
+        key: 'd' + i,
+        name: DAY_NAMES[dt.getDay()],
+        date: String(dt.getDate()).padStart(2, '0') + '.' + String(dt.getMonth() + 1).padStart(2, '0') + '.' + dt.getFullYear(),
+        pctLabel: pct + '%',
+        deg: Math.round((pct / 100) * 360),
+        tint,
+        items,
+        doneLabel: done + ' completed',
+        openLabel: (items.length - done) + ' not completed',
+        cardRing: isToday ? 'inset 0 0 0 1px rgba(0,117,255,.55)' : 'none',
+        badge: isToday ? 'Today' : future ? 'Ahead' : 'Logged',
+        badgeColor: isToday ? '#0075FF' : future ? 'rgba(255,255,255,.08)' : 'rgba(1,181,116,.22)',
+        energy: Math.round(4 + seeded(i, 21) * 6),
+        focus: Math.round(4 + seeded(i, 22) * 6),
+        motivation: Math.round(4 + seeded(i, 23) * 6),
+        barH: Math.max(8, pct) + '%',
+      };
+    });
+  }
+
+  renderVals() {
+    const now = new Date();
+    const bars = [];
+    for (let i = 0; i < 28; i++) bars.push({ dur: Math.round(620 + seeded(i, 3) * 900), delay: Math.round(seeded(i, 9) * 800) });
+    const md = this.monthData(now);
+    const wd = this.weekData(now);
+    const tasks = this.dayTasks();
+    const doneToday = tasks.filter((t) => t.done).length;
+    const monthPct = md.monthPct;
+    wd.forEach((d) => { d.short = d.name.slice(0, 3); });
+    const weekTotal = wd.reduce((a, d) => a + d.items.length, 0);
+    const weekDone = wd.reduce((a, d) => a + d.items.filter((x) => x.done).length, 0);
+    const weekPct = Math.round((weekDone / Math.max(1, weekTotal)) * 100);
+
+    return {
+      monthDays: md.days,
+      monthWeeks: md.weeks,
+      monthRows: md.rows,
+      weekDays: wd,
+      isMonthView: this.view === 'month',
+      isWeekView: this.view === 'week',
+      todayTasks: tasks.map((t) => {
+        const type = TYPES.filter((x) => x.id === t.type)[0];
+        return {
+          key: t.id, label: t.label, type: type.label, color: type.color, icon: type.icon,
+          bg: t.done ? type.color : 'transparent',
+          ring: t.done ? 'none' : 'inset 0 0 0 1px rgba(255,255,255,.28)',
+          strike: t.done ? 'line-through' : 'none',
+          textColor: t.done ? '#A0AEC0' : '#fff',
+        };
+      }),
+      gridCols: '196px repeat(' + md.days.length + ', minmax(0,1fr))',
+      ctaProps: { style: { width: '100%', height: 58, borderRadius: 15, fontSize: 14, letterSpacing: '.06em' } },
+      socialProps: { style: { width: '100%', height: 48, borderRadius: 15, fontSize: 12, gap: 8 } },
+      userLabel: this.props.userName || 'Nikola',
+      footNote: 'Jarvis — your month, your day, your call.',
+      footLinks: ['Task types', 'Weekly', 'Monthly'],
+      weekStartLabel: wd[0].date,
+      weekPctLabel: weekPct + '%',
+      weekDeg: Math.round((weekPct / 100) * 360),
+      weekDoneLabel: weekDone + ' of ' + weekTotal + ' completed',
+      bars,
+
+      welcomeDone: this.state.done,
+      typedGreeting: this.state.typed,
+      typedSub: this.state.sub,
+      bootStamp: DAY_NAMES[now.getDay()] + ' · ' + now.getDate() + ' ' + MONTHS[now.getMonth()].slice(0, 3).toUpperCase() + ' ' + now.getFullYear(),
+      isGreeting: this.screen === 'welcome' || this.screen === 'boot',
+      greetEyebrow: this.screen === 'boot' ? 'Loading your month' : 'System online',
+      greetStatus: this.state.done ? (this.screen === 'boot' ? 'Opening your dashboard' : 'Awaiting sign-in') : 'Bringing systems up',
+      greetProgress: Math.round(((this.state.typed.length + this.state.sub.length) / Math.max(1, (this.line1 || '').length + (this.line2 || '').length)) * 100) + '%',
+
+      isAuth: this.screen === 'auth',
+      isSignIn: this.state.authMode === 'login',
+      isRegister: this.state.authMode === 'register',
+      signInBg: this.state.authMode === 'login' ? 'rgb(0,117,255)' : 'transparent',
+      signInFg: '#fff',
+      registerBg: this.state.authMode === 'register' ? 'rgb(0,117,255)' : 'transparent',
+      registerFg: '#fff',
+      authTitle: this.state.authMode === 'login' ? 'Welcome back' : 'Set up your protocol',
+      authBlurb: this.state.authMode === 'login'
+        ? 'Enter your credentials and I will bring the month back up.'
+        : 'A few details and I will start tracking your days for you.',
+      authCta: this.state.authMode === 'login' ? 'Sign in' : 'Create account',
+      switchLabel: this.state.authMode === 'login' ? 'Remember me' : 'Keep me signed in',
+      authFootPrompt: this.state.authMode === 'login' ? "Don't have an account?" : 'Already have an account?',
+      authFootLink: this.state.authMode === 'login' ? 'Register' : 'Sign in',
+      showSignIn: () => this.setState({ authMode: 'login' }),
+      showRegister: () => this.setState({ authMode: 'register' }),
+      toggleAuthMode: (e) => { if (e) e.preventDefault(); this.setState({ authMode: this.state.authMode === 'login' ? 'register' : 'login' }); },
+      enterApp: () => { this.setState({ screen: 'boot' }); this.playGreeting('boot'); },
+
+      isApp: this.screen === 'app',
+      nav: this.state.nav,
+      setNav: (id) => this.setState({ nav: id }),
+      trail: ['Jarvis', 'Dashboard'],
+      navItems: [
+        { id: 'dashboard', icon: 'IONIconHHomeDefault', label: 'Dashboard' },
+        { id: 'savings', icon: 'IONIconWWalletDefault', label: 'Savings & investing' },
+        { id: 'self', icon: 'IONIconRRocketSharp', label: 'Self-improvement' },
+        { id: 'goals', icon: 'IONIconCCubeSharp', label: 'Big goals & dreams' },
+        { id: 'types', icon: 'IONIconDDocumentsDefault', label: 'Task types' },
+      ],
+      navGroups: [{ label: 'Account', items: [
+        { id: 'profile', icon: 'IONIconPPersonDefault', label: 'Profile' },
+        { id: 'signout', icon: 'IONIconKKeyDefault', label: 'Sign out' },
+      ] }],
+      monthTitle: MONTHS[now.getMonth()] + ' ' + now.getFullYear(),
+      todayLine: DAY_NAMES[now.getDay()] + ' ' + now.getDate() + ' — ' + doneToday + ' of ' + tasks.length + ' tasks done, ' + (tasks.length - doneToday) + ' still open',
+      kpiToday: doneToday + '/' + tasks.length,
+      kpiTodayDelta: '+' + Math.round((doneToday / tasks.length) * 100) + '%',
+      kpiMonth: monthPct + '%',
+      weekBg: this.view === 'week' ? 'rgb(0,117,255)' : 'transparent',
+      monthBg: this.view === 'month' ? 'rgb(0,117,255)' : 'transparent',
+      showWeek: () => this.setState({ view: 'week' }),
+      showMonth: () => this.setState({ view: 'month' }),
+    };
+  }
+}
+</script>
+</body>
+</html>
