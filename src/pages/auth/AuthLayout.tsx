@@ -1,5 +1,6 @@
 import type { FormEvent, ReactNode } from 'react'
 import { Button, Eyebrow, Icon, SegmentedToggle } from '../../components'
+import { APP_NAME } from '../../lib/brand'
 import { hrefFor, navigate } from '../../router'
 import styles from './AuthLayout.module.css'
 
@@ -52,7 +53,7 @@ export function AuthLayout({
 
       <div className={styles.card}>
         <div className={styles.header}>
-          <span className={styles.wordmark}>Jarvis</span>
+          <span className={styles.wordmark}>{APP_NAME}</span>
           <span className={styles.title}>{title}</span>
           <span className={styles.blurb}>{blurb}</span>
         </div>

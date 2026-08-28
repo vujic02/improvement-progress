@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Button, Eyebrow, Icon, ProgressBar } from '../../components'
 import { TODAY_TASKS } from '../../data/tasks'
+import { ASSISTANT_NAME } from '../../lib/brand'
 import { bootStamp, salutation } from '../../lib/date'
 import { seeded } from '../../lib/seeded'
 import { navigate, type Route } from '../../router'
@@ -54,7 +55,7 @@ export function WelcomePage({ variant, next, typingSpeed = 55, voice = true }: W
   })
 
   const status = typed.voiceBlocked
-    ? 'Tap anywhere to hear Jarvis'
+    ? `Tap anywhere to hear ${ASSISTANT_NAME}`
     : typed.done
       ? variant === 'boot'
         ? 'Opening your dashboard'

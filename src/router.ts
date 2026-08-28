@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-export const ROUTES = ['welcome', 'signin', 'register', 'boot', 'dashboard'] as const
+export const ROUTES = ['welcome', 'signin', 'register', 'boot', 'dashboard', 'task-types'] as const
 
 export type Route = (typeof ROUTES)[number]
 
@@ -10,6 +10,7 @@ const PATHS: Record<Route, string> = {
   register: '#/register',
   boot: '#/boot',
   dashboard: '#/dashboard',
+  'task-types': '#/task-types',
 }
 
 function readRoute(): Route {

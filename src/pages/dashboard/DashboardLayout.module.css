@@ -1,0 +1,52 @@
+.shell {
+  position: relative;
+  display: flex;
+  gap: 24px;
+  padding: 10px 22px 24px 10px;
+  min-height: 100vh;
+  background: var(--bg-page);
+  overflow: hidden;
+}
+
+.blob {
+  position: absolute;
+  right: -260px;
+  top: -180px;
+  width: 820px;
+  height: 820px;
+  background: url('/assets/img/art-jellyfish-blue.jpg') center / cover no-repeat;
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.sidebar {
+  position: sticky;
+  top: 10px;
+  align-self: flex-start;
+  height: calc(100vh - 34px);
+  min-height: 860px;
+}
+
+.main {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  padding: 12px 0 0;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    flex-direction: column;
+    padding: 10px 14px 24px;
+  }
+
+  .sidebar {
+    position: static;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+  }
+}

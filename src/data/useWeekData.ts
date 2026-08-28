@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { DAY_NAMES, shortDate } from '../lib/date'
 import { seeded } from '../lib/seeded'
-import { TASK_TYPES, WEEK_TINTS } from './taskTypes'
+import { DEFAULT_TASK_TYPES, WEEK_TINTS } from './taskTypes'
 import { WEEK_TASK_POOL } from './tasks'
 
 export interface WeekTask {
@@ -38,7 +38,11 @@ export interface WeekData {
   startLabel: string
 }
 
-/** Seven seeded days for the week containing `now`, Sunday-first. */
+/**
+ * Seven seeded days for the week containing `now`, Sunday-first. Mock labels
+ * only exist for the default types, so this samples WEEK_TASK_POOL rather than
+ * the user's full list.
+ */
 export function useWeekData(now: Date): WeekData {
   return useMemo(() => {
     const today = now.getDate()
@@ -51,13 +55,13 @@ export function useWeekData(now: Date): WeekData {
 
       const items: WeekTask[] = []
       for (let k = 0; k < 4; k++) {
-        const ti = Math.floor(seeded(i + 2, k + 5) * TASK_TYPES.length)
+        const ti = Math.floor(seeded(i + 2, k + 5) * WEEK_TASK_POOL.length)
         const pool = WEEK_TASK_POOL[ti]
         items.push({
           key: `${i}-${k}`,
           label: pool[Math.floor(seeded(i + 7, k + 1) * pool.length)],
-          color: TASK_TYPES[ti].color,
-          type: TASK_TYPES[ti].label,
+          color: DEFAULT_TASK_TYPES[ti].color,
+          type: DEFAULT_TASK_TYPES[ti].label,
           done: !future && seeded(i + 11, k + 3) > 0.42,
         })
       }

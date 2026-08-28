@@ -1,9 +1,11 @@
 import { RegisterPage } from './pages/auth/RegisterPage'
 import { SignInPage } from './pages/auth/SignInPage'
 import { DashboardPage } from './pages/dashboard/DashboardPage'
+import { TaskTypesPage } from './pages/taskTypes/TaskTypesPage'
 import { WelcomePage } from './pages/welcome/WelcomePage'
 import { useRoute } from './router'
 import { SessionProvider } from './session/SessionProvider'
+import { TaskTypesProvider } from './taskTypes/TaskTypesProvider'
 
 function Screen() {
   const route = useRoute()
@@ -18,6 +20,8 @@ function Screen() {
       return <WelcomePage variant="boot" next="dashboard" />
     case 'dashboard':
       return <DashboardPage />
+    case 'task-types':
+      return <TaskTypesPage />
     case 'welcome':
     default:
       return <WelcomePage variant="welcome" next="signin" />
@@ -27,7 +31,9 @@ function Screen() {
 export default function App() {
   return (
     <SessionProvider>
-      <Screen />
+      <TaskTypesProvider>
+        <Screen />
+      </TaskTypesProvider>
     </SessionProvider>
   )
 }

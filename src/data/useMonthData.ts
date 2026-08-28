@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { DAY_LETTERS } from '../lib/date'
 import { seeded } from '../lib/seeded'
-import { TASK_TYPES, WEEK_TINTS } from './taskTypes'
+import { WEEK_TINTS, type TaskType } from './taskTypes'
 import type { IconName } from '../components/Icon'
 
 export interface MonthDay {
@@ -55,10 +55,11 @@ export interface MonthData {
 }
 
 /**
- * Builds the habit grid for `now`'s month. Cells default to a seeded value so
- * the grid looks lived-in; user toggles are held in local state and win.
+ * Builds the habit grid for `now`'s month, one row per task type. Cells default
+ * to a seeded value so the grid looks lived-in; user toggles are held in local
+ * state and win.
  */
-export function useMonthData(now: Date): MonthData {
+export function useMonthData(now: Date, types: TaskType[]): MonthData {
   const [checks, setChecks] = useState<Record<string, boolean>>({})
 
   const isChecked = useCallback(
@@ -112,7 +113,7 @@ export function useMonthData(now: Date): MonthData {
       weeks[day.weekIdx].span += 1
     }
 
-    const rows: HabitRow[] = TASK_TYPES.map((type, ti) => {
+    const rows: HabitRow[] = types.map((type, ti) => {
       const cells: HabitCell[] = days.map((day) => {
         const filled = isChecked(ti, day.d, today)
         return {
@@ -139,8 +140,8 @@ export function useMonthData(now: Date): MonthData {
     })
 
     for (const day of days) {
-      const hits = TASK_TYPES.filter((_, ti) => isChecked(ti, day.d, today)).length
-      const pct = day.future ? 0 : Math.round((hits / TASK_TYPES.length) * 100)
+      const hits = types.filter((_, ti) => isChecked(ti, day.d, today)).length
+      const pct = day.future ? 0 : Math.round((hits / Math.max(1, types.length)) * 100)
       day.numColor = day.isToday
         ? 'var(--accent)'
         : day.future
@@ -160,5 +161,5 @@ export function useMonthData(now: Date): MonthData {
       monthPct: Math.round((allHit / Math.max(1, allElapsed)) * 100),
       gridCols: `196px repeat(${days.length}, minmax(0, 1fr))`,
     }
-  }, [now, isChecked, toggle])
+  }, [now, types, isChecked, toggle])
 }

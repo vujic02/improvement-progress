@@ -162,6 +162,107 @@ const GLYPHS = {
       </>
     ),
   },
+  leaf: {
+    mode: 'stroke',
+    el: (
+      <>
+        <path d="M19.5 4.5C11 4.5 4.5 9 4.5 15.5a4 4 0 0 0 4 4c6.5 0 11-6.5 11-15Z" />
+        <path d="M4.8 19.2 12 12" />
+      </>
+    ),
+  },
+  moon: {
+    mode: 'stroke',
+    el: <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" />,
+  },
+  people: {
+    mode: 'stroke',
+    el: (
+      <>
+        <circle cx="9" cy="8.5" r="3.2" />
+        <path d="M2.8 20a6.2 6.2 0 0 1 12.4 0" />
+        <path d="M16 5.6a3.2 3.2 0 0 1 0 6.2" />
+        <path d="M17 14.4a6.2 6.2 0 0 1 4.2 5.6" />
+      </>
+    ),
+  },
+  bulb: {
+    mode: 'stroke',
+    el: (
+      <>
+        <path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2h5c0-.8.4-1.5 1-2A6 6 0 0 0 12 3Z" />
+        <path d="M9.5 18.5h5M10.5 21h3" />
+      </>
+    ),
+  },
+  heart: {
+    mode: 'stroke',
+    el: <path d="M12 20.5 4.2 12.9a4.8 4.8 0 0 1 6.8-6.8l1 1 1-1a4.8 4.8 0 0 1 6.8 6.8Z" />,
+  },
+  flame: {
+    mode: 'stroke',
+    el: (
+      <path d="M12 2.5c3 3.5 6 6 6 10a6 6 0 0 1-12 0c0-1.6.6-3 1.6-4.2.4 1 1.1 1.8 2 2.2C9 8 10 4.8 12 2.5Z" />
+    ),
+  },
+  book: {
+    mode: 'stroke',
+    el: (
+      <>
+        <path d="M4 4.5h5.5A2.5 2.5 0 0 1 12 7a2.5 2.5 0 0 1 2.5-2.5H20v13h-5.5A2.5 2.5 0 0 0 12 20a2.5 2.5 0 0 0-2.5-2.5H4Z" />
+        <path d="M12 7v13" />
+      </>
+    ),
+  },
+  music: {
+    mode: 'stroke',
+    el: (
+      <>
+        <path d="M9 18V5.5l10-2V16" />
+        <circle cx="6.5" cy="18" r="2.5" />
+        <circle cx="16.5" cy="16" r="2.5" />
+      </>
+    ),
+  },
+  code: {
+    mode: 'stroke',
+    el: <path d="m8.5 8-5 4 5 4M15.5 8l5 4-5 4" />,
+  },
+  star: {
+    mode: 'stroke',
+    el: (
+      <path d="m12 3.2 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z" />
+    ),
+  },
+  target: {
+    mode: 'stroke',
+    el: (
+      <>
+        <circle cx="12" cy="12" r="8.5" />
+        <circle cx="12" cy="12" r="4.5" />
+        <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+      </>
+    ),
+  },
+  plus: {
+    mode: 'stroke',
+    el: <path d="M12 5v14M5 12h14" />,
+  },
+  close: {
+    mode: 'stroke',
+    el: <path d="m6 6 12 12M18 6 6 18" />,
+  },
+  trash: {
+    mode: 'stroke',
+    el: (
+      <>
+        <path d="M4.5 6.5h15" />
+        <path d="M9.5 6.5V4.2h5v2.3" />
+        <path d="M6.5 6.5 7.4 20a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4l.9-13.5" />
+        <path d="M10.5 10.5v7M13.5 10.5v7" />
+      </>
+    ),
+  },
   moreHoriz: {
     mode: 'fill',
     el: (

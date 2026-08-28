@@ -1,8 +1,13 @@
 import styles from './Footer.module.css'
 
+export interface FooterLink {
+  label: string
+  href: string
+}
+
 export interface FooterProps {
   note: string
-  links: string[]
+  links: FooterLink[]
 }
 
 export function Footer({ note, links }: FooterProps) {
@@ -11,8 +16,8 @@ export function Footer({ note, links }: FooterProps) {
       <span>{note}</span>
       <nav className={styles.links} aria-label="Footer">
         {links.map((link) => (
-          <a key={link} className={styles.link} href="#/dashboard">
-            {link}
+          <a key={link.label} className={styles.link} href={link.href}>
+            {link.label}
           </a>
         ))}
       </nav>

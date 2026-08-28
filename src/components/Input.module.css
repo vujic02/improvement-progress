@@ -4,11 +4,25 @@
   gap: 8px;
 }
 
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .label {
   font-size: 14px;
   font-weight: 700;
   line-height: 1;
   color: var(--text);
+}
+
+.trailing {
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .input {
