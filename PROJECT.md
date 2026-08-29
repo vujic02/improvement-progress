@@ -29,8 +29,9 @@ A personal day/month tracker. Screens live behind a hash router:
 | `#/signin`, `#/register` | Auth, sharing `AuthLayout` |
 | `#/boot` | Second greeting after auth, hands off to the dashboard |
 | `#/dashboard` | Month habit grid or week day-cards |
-| `#/savings` | Savings, investments and dreams |
+| `#/savings` | Savings, investments, debt and bills |
 | `#/self-improvement` | Learning, training, nutrition, reading and five more |
+| `#/dreams` | Big goals and dreams |
 | `#/task-types` | Manage task types |
 | `#/profile` | Account details and notification settings |
 
@@ -74,8 +75,9 @@ same machinery and differ only in the kinds on offer and the copy around them:
 
 | Page | Area | Kinds |
 | --- | --- | --- |
-| `#/savings` | `SAVINGS_AREA` (`src/data/savings.ts`) | saving, investment, dream |
+| `#/savings` | `SAVINGS_AREA` (`src/data/savings.ts`) | saving, investment, debt, bills |
 | `#/self-improvement` | `GROWTH_AREA` (`src/data/growth.ts`) | learning, training, nutrition, reading, mind, creative, career, social, health |
+| `#/dreams` | none — see below | none |
 
 Everything else is shared and lives in `src/pages/pursuits/` — `PursuitPage`
 (header, stats, filter, grid, empty screen), `PursuitCard` and `PursuitModal`.
@@ -89,14 +91,17 @@ see each other. `useSavings()` and `useGrowth()` are one-line wrappers.
 
 **Rules:**
 
-- **Kinds are a closed list per area.** Savings has three, deliberately: money
-  set aside, money put to work, and the thing with no price tag yet. Anything
-  finer is a tag, not a kind. Growth has nine, mirroring the categories the
+- **Kinds are a closed list per area.** Savings has four, and **each one is a
+  card on the stats row** — two that grow what you have, two that shrink what
+  you owe. Adding a fifth adds a stat card, so it has to earn one. There is no
+  `dream` kind: dreams have their own page, where they get a picture instead of
+  a price. Growth has nine, mirroring the categories the
   day is already scored against — its icons and colours are lifted straight
   from the matching `DEFAULT_TASK_TYPES` entries so a growth goal and its task
   type read as the same thing.
-- A pursuit is **a name, a kind, a start date and a target date**. No amounts —
-  the pages track intent and time, not balances or weights.
+- A pursuit is **a name, a kind, a start date and a target date**. Areas with
+  `money: true` also carry a target amount and a running balance; the growth
+  page does not, because a bench press has no price.
 - **Names are capped at 40 characters** (`PURSUIT_NAME_MAX`), non-blank and
   unique case-insensitively *within their area*. Steps are capped at 60
   (`STEP_NAME_MAX`) and are unique within their own pursuit only.
@@ -110,15 +115,89 @@ see each other. `useSavings()` and `useGrowth()` are one-line wrappers.
 - **Steps are added after creation**, from the pursuit's own card. They are the
   rungs: 70kg, 75kg, 80kg, or learn CI, learn CD, wire up Actions, deploy to
   the VPS. Progress is steps done over steps total; no steps means 0%.
+- **Savings has no steps** (`steps: false`). A savings goal is measured by its
+  balance, and a checklist next to that is two answers to the same question —
+  so the card shows a number, a bar and a contribution field, and nothing else.
+  The store still carries `steps` for every pursuit; the savings card simply
+  never renders them.
 - Dates are stored as **`yyyy-mm-dd` strings**, the format `<input type="date">`
   speaks. Parse them with `parseDateInput` (`src/lib/date.ts`) and never with
   `new Date(value)` — that reads them as UTC and loses a day west of Greenwich.
+
+**Money** (savings only, gated on `PursuitArea.money`):
+
+- **Euros, via one constant.** `CURRENCY` and `formatMoney` live in
+  `src/data/pursuits.ts` — nothing else should hardcode a symbol or a locale,
+  so switching currency later, or making it a per-user setting, is one edit.
+- Both amounts are **optional**. A goal with no target still takes
+  contributions and just shows a running total.
+- **A money goal measures itself in money.** When `target > 0` the progress bar
+  and the "done" state come from the balance. With no target there is nothing
+  to measure against, so the head reads "€2,400 put aside" and the bar is
+  hidden rather than pinned at zero.
+- `contribute` **adds a delta rather than setting a balance** — that is what
+  the card's field does. A negative corrects a mistake, and the balance clamps
+  at zero, so there is no way to end up owing your own savings goal.
+- Amounts are validated in `add` and `contribute`, not just in the inputs:
+  finite, non-negative, and under `MAX_AMOUNT`. Anything bigger is a paste
+  accident, not a savings goal.
+- Overshooting is allowed and shown — putting aside more than the target is a
+  real thing that happens, not an error.
+- **The stats row is one card per kind**, showing what has gone in against that
+  kind's combined target. `statLabel` supplies the heading because it is not
+  derivable — "Saving" becomes "Saved", "Investment" becomes "Invested".
+- **`spend` kinds are never green.** Bills are money that leaves and stays
+  gone, so their stat percentage renders muted (`deltaTone="neutral"`) and
+  their progress bar keeps the kind colour when complete instead of turning
+  gain-green. Paying more bills is progress; it is not profit. Any future
+  outflow kind must set `spend` for the same reason.
 
 **Empty state:** each page has a dedicated empty screen rather than an empty
 grid. It introduces the **first three kinds only** (`EMPTY_KINDS_SHOWN`), both
 in the tilted tile trio and the strip below the call to action — an area with
 nine kinds would otherwise turn its own welcome into a menu. Order the kinds so
 the three most representative come first.
+
+## Dreams
+
+`#/dreams` shares the pursuit **store** but not the pursuit **page**. It has no
+kinds — a dream house and a dream sabbatical are not usefully different
+categories — so the kind picker, the tint and the whole filter strip are gone.
+What distinguishes a dream is the picture of it, so the card leads with one.
+
+- A dream is **a name, an icon, an optional image, and dates with steps** like
+  any other pursuit. `Pursuit.kind` is simply absent; `icon` and `image` are
+  set instead. One `PursuitsProvider` still holds it, mounted on
+  `DreamsContext`.
+- The icon is **required and always the fallback**: shown when there is no
+  image, and swapped back in when a given image fails to load, so a dead link
+  degrades instead of leaving a hole in the grid.
+- Targets default to twice `DEFAULT_TARGET_MONTHS` — a dream a year out is
+  normal, six months is not.
+
+### Image addresses — the rules that make this safe
+
+Users paste arbitrary URLs. That is fine here, and it stays fine only while all
+three of these hold:
+
+1. **https only.** `safeImageUrl` (`src/data/pursuits.ts`) parses with `new
+   URL()` and returns the value only for `https:`. `add` re-checks before
+   storing, so nothing else can reach state. `javascript:` never executes from
+   an `<img src>` in any current browser, but it is blocked here so it cannot
+   leak somewhere it would.
+2. **Rendered as `<img src>` and nowhere else.** Never an `href`, a `style`, a
+   CSS `url()`, a `srcdoc`, or a background. The scheme check is what makes
+   `src` safe; those other sinks have different rules and would void it.
+3. **`referrerPolicy="no-referrer"`** on every such `<img>`. Loading a
+   third-party image already hands that host the user's IP and user-agent —
+   there is no reason to hand it the page they were on as well.
+
+There is **no SSRF surface**: the app has no server, and nothing we control
+ever fetches the URL. When a backend does land, it must apply rule 1 again on
+write rather than trusting the client, and the deployment should carry a
+`Content-Security-Policy` with `img-src https:` as the backstop. No CSP is set
+today — Vite's dev server and the app's inline styles would need working
+through first.
 
 ## Profile & notifications
 
@@ -166,10 +245,10 @@ reminders actually get delivered in-app.
   goals in `SavingsProvider`; both vanish on reload. When a backend lands those
   two providers are the only things that need to change — every consumer reads
   through `useTaskTypes()` or `useSavings()`.
-- Sidebar item `goals` has no page yet. `NAV_ROUTES` in
-  `DashboardLayout` maps the ids that do; the rest are inert on purpose rather
-  than dead links. The navbar's bell, search and settings buttons are inert for
-  the same reason.
+- Every sidebar item now has a page. The navbar's bell, search and settings
+  buttons are still inert on purpose rather than dead links.
+- **No `Content-Security-Policy` is set.** See the dreams section — the image
+  rules hold without one, but a CSP is the backstop worth adding at deploy.
 - **Nothing actually sends a reminder.** The notifications tab configures them;
   there is no scheduler, no push registration and no email. `channels` is a
   preference, not a subscription.

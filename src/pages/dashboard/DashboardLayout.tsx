@@ -28,6 +28,7 @@ const NAV_ROUTES: Partial<Record<string, Route>> = {
   dashboard: 'dashboard',
   savings: 'savings',
   self: 'self-improvement',
+  goals: 'dreams',
   types: 'task-types',
   profile: 'profile',
 }
@@ -38,6 +39,7 @@ const FOOTER_LINKS = [
   { label: 'Dashboard', href: hrefFor('dashboard') },
   { label: 'Savings', href: hrefFor('savings') },
   { label: 'Self-improvement', href: hrefFor('self-improvement') },
+  { label: 'Dreams', href: hrefFor('dreams') },
   { label: 'Task types', href: hrefFor('task-types') },
 ]
 

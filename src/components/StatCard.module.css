@@ -43,3 +43,8 @@
 .deltaDown {
   color: var(--accent-pink);
 }
+
+/* Money leaving on purpose — progress, but not a gain. */
+.deltaNeutral {
+  color: var(--text-muted);
+}

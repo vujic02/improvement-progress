@@ -1,5 +1,12 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
-import { PURSUIT_NAME_MAX, STEP_NAME_MAX, type Pursuit } from '../data/pursuits'
+import {
+  MAX_AMOUNT,
+  PURSUIT_NAME_MAX,
+  STEP_NAME_MAX,
+  formatMoney,
+  safeImageUrl,
+  type Pursuit,
+} from '../data/pursuits'
 import { parseDateInput } from '../lib/date'
 import type { NewPursuit, PursuitContext, Result } from './context'
 
@@ -21,7 +28,16 @@ export function PursuitsProvider({ context, children }: PursuitsProviderProps) {
   const [pursuits, setPursuits] = useState<Pursuit[]>([])
 
   const add = useCallback(
-    ({ name, kind, createdAt, targetAt }: NewPursuit): Result => {
+    ({
+      name,
+      kind,
+      icon,
+      image,
+      target: targetAmount,
+      saved: savedAmount,
+      createdAt,
+      targetAt,
+    }: NewPursuit): Result => {
       const label = name.trim()
       if (!label) return { ok: false, reason: 'Give it a name.' }
       if (label.length > PURSUIT_NAME_MAX) {
@@ -37,8 +53,35 @@ export function PursuitsProvider({ context, children }: PursuitsProviderProps) {
       if (!target) return { ok: false, reason: 'Pick a target date.' }
       if (target < start) return { ok: false, reason: 'The target date is before the start date.' }
 
+      // Only https addresses are stored, and only ever rendered as an <img src>.
+      const picture = image?.trim() ? safeImageUrl(image) : null
+      if (image?.trim() && !picture) {
+        return { ok: false, reason: 'Use an https:// address for the image.' }
+      }
+
+      for (const amount of [targetAmount, savedAmount]) {
+        if (amount === undefined) continue
+        if (!Number.isFinite(amount) || amount < 0) {
+          return { ok: false, reason: 'Amounts have to be zero or more.' }
+        }
+        if (amount > MAX_AMOUNT) {
+          return { ok: false, reason: `Keep amounts under ${formatMoney(MAX_AMOUNT)}.` }
+        }
+      }
+
       setPursuits((prev) => [
-        { id: nextId('pursuit'), name: label, kind, createdAt, targetAt, steps: [] },
+        {
+          id: nextId('pursuit'),
+          name: label,
+          kind,
+          icon,
+          image: picture ?? undefined,
+          target: targetAmount,
+          saved: savedAmount,
+          createdAt,
+          targetAt,
+          steps: [],
+        },
         ...prev,
       ])
       return { ok: true }
@@ -93,9 +136,25 @@ export function PursuitsProvider({ context, children }: PursuitsProviderProps) {
     )
   }, [])
 
+  const contribute = useCallback((pursuitId: string, amount: number): Result => {
+    if (!Number.isFinite(amount) || amount === 0) {
+      return { ok: false, reason: 'Enter an amount.' }
+    }
+    if (Math.abs(amount) > MAX_AMOUNT) {
+      return { ok: false, reason: `Keep amounts under ${formatMoney(MAX_AMOUNT)}.` }
+    }
+
+    setPursuits((prev) =>
+      prev.map((p) =>
+        p.id === pursuitId ? { ...p, saved: Math.max(0, (p.saved ?? 0) + amount) } : p,
+      ),
+    )
+    return { ok: true }
+  }, [])
+
   const value = useMemo(
-    () => ({ pursuits, add, remove, addStep, toggleStep, removeStep }),
-    [pursuits, add, remove, addStep, toggleStep, removeStep],
+    () => ({ pursuits, add, remove, addStep, toggleStep, removeStep, contribute }),
+    [pursuits, add, remove, addStep, toggleStep, removeStep, contribute],
   )
 
   return <context.Provider value={value}>{children}</context.Provider>

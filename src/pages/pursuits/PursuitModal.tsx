@@ -3,7 +3,9 @@ import { Button, Icon, Input, Modal } from '../../components'
 import {
   DEFAULT_TARGET_MONTHS,
   PURSUIT_NAME_MAX,
+  formatMoney,
   kindMeta,
+  parseAmount,
   type PursuitArea,
 } from '../../data/pursuits'
 import { daysBetween, mediumDate, parseDateInput, toDateInput } from '../../lib/date'
@@ -30,6 +32,8 @@ function defaultTarget(from: Date): string {
 function PursuitForm({ area, onClose, onCreate }: Omit<PursuitModalProps, 'open'>) {
   const [name, setName] = useState('')
   const [kind, setKind] = useState<string>(area.kinds[0])
+  const [targetInput, setTargetInput] = useState('')
+  const [savedInput, setSavedInput] = useState('')
   const [createdAt, setCreatedAt] = useState(() => toDateInput(new Date()))
   const [targetAt, setTargetAt] = useState(() => defaultTarget(new Date()))
   const [error, setError] = useState<string | null>(null)
@@ -38,9 +42,26 @@ function PursuitForm({ area, onClose, onCreate }: Omit<PursuitModalProps, 'open'
   const target = parseDateInput(targetAt)
   const span = start && target ? daysBetween(start, target) : null
 
+  const targetAmount = parseAmount(targetInput)
+  const savedAmount = parseAmount(savedInput)
+  const left =
+    area.money && targetAmount && Number.isFinite(targetAmount)
+      ? targetAmount - (Number.isFinite(savedAmount ?? 0) ? (savedAmount ?? 0) : 0)
+      : null
+
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const result = onCreate({ name, kind, createdAt, targetAt })
+    if (area.money && (Number.isNaN(targetAmount) || Number.isNaN(savedAmount))) {
+      setError('Amounts have to be numbers.')
+      return
+    }
+    const result = onCreate({
+      name,
+      kind,
+      createdAt,
+      targetAt,
+      ...(area.money ? { target: targetAmount ?? undefined, saved: savedAmount ?? undefined } : null),
+    })
     if (result.ok) onClose()
     else setError(result.reason)
   }
@@ -88,6 +109,49 @@ function PursuitForm({ area, onClose, onCreate }: Omit<PursuitModalProps, 'open'
           })}
         </div>
       </fieldset>
+
+      {area.money ? (
+        <div className={styles.amounts}>
+          <Input
+            label="Target amount"
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="0.01"
+            value={targetInput}
+            placeholder="0"
+            onChange={(e) => {
+              setTargetInput(e.target.value)
+              setError(null)
+            }}
+            trailing="€ · optional"
+          />
+          <Input
+            label="Already put aside"
+            type="number"
+            inputMode="decimal"
+            min={0}
+            step="0.01"
+            value={savedInput}
+            placeholder="0"
+            onChange={(e) => {
+              setSavedInput(e.target.value)
+              setError(null)
+            }}
+            trailing="€ · optional"
+          />
+        </div>
+      ) : null}
+
+      {left !== null && Number.isFinite(left) ? (
+        <span className={styles.span}>
+          {left > 0
+            ? `${formatMoney(left)} to go.`
+            : left === 0
+              ? 'Already there — the target is covered.'
+              : `${formatMoney(-left)} past the target.`}
+        </span>
+      ) : null}
 
       <div className={styles.dates}>
         <Input

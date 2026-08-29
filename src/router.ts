@@ -8,6 +8,7 @@ export const ROUTES = [
   'dashboard',
   'savings',
   'self-improvement',
+  'dreams',
   'task-types',
   'profile',
 ] as const
@@ -22,6 +23,7 @@ const PATHS: Record<Route, string> = {
   dashboard: '#/dashboard',
   savings: '#/savings',
   'self-improvement': '#/self-improvement',
+  dreams: '#/dreams',
   'task-types': '#/task-types',
   profile: '#/profile',
 }

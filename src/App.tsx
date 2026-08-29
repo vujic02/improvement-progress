@@ -1,7 +1,9 @@
+import { DreamsContext } from './dreams/context'
 import { GrowthContext } from './growth/context'
 import { RegisterPage } from './pages/auth/RegisterPage'
 import { SignInPage } from './pages/auth/SignInPage'
 import { DashboardPage } from './pages/dashboard/DashboardPage'
+import { DreamsPage } from './pages/dreams/DreamsPage'
 import { GrowthPage } from './pages/growth/GrowthPage'
 import { ProfilePage } from './pages/profile/ProfilePage'
 import { SavingsPage } from './pages/savings/SavingsPage'
@@ -31,6 +33,8 @@ function Screen() {
       return <SavingsPage />
     case 'self-improvement':
       return <GrowthPage />
+    case 'dreams':
+      return <DreamsPage />
     case 'task-types':
       return <TaskTypesPage />
     case 'profile':
@@ -47,9 +51,11 @@ export default function App() {
       <TaskTypesProvider>
         <PursuitsProvider context={SavingsContext}>
           <PursuitsProvider context={GrowthContext}>
-            <ProfileProvider>
-              <Screen />
-            </ProfileProvider>
+            <PursuitsProvider context={DreamsContext}>
+              <ProfileProvider>
+                <Screen />
+              </ProfileProvider>
+            </PursuitsProvider>
           </PursuitsProvider>
         </PursuitsProvider>
       </TaskTypesProvider>

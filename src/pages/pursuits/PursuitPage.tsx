@@ -8,7 +8,7 @@ import {
   SegmentedToggle,
   StatCard,
 } from '../../components'
-import { kindMeta, type PursuitArea } from '../../data/pursuits'
+import { formatMoney, kindMeta, type PursuitArea } from '../../data/pursuits'
 import { APP_NAME } from '../../lib/brand'
 import { daysBetween, mediumDate, parseDateInput } from '../../lib/date'
 import { usePursuitStore, type PursuitContext } from '../../pursuits/context'
@@ -35,7 +35,7 @@ export interface PursuitPageProps {
  * Everything that differs between money and growth comes in through `area`.
  */
 export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
-  const { pursuits, add, remove, addStep, toggleStep, removeStep } = usePursuitStore(
+  const { pursuits, add, remove, addStep, toggleStep, removeStep, contribute } = usePursuitStore(
     context,
     hookName,
   )
@@ -66,6 +66,24 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
       next: targets.find((d) => daysBetween(now, d) >= 0),
     }
   }, [pursuits])
+
+  /** Money areas get one card per kind: what has gone in, against the target. */
+  const money = useMemo(
+    () =>
+      area.kinds.map((kind) => {
+        const meta = kindMeta(area, kind)
+        const mine = pursuits.filter((p) => p.kind === kind)
+        const saved = mine.reduce((sum, p) => sum + (p.saved ?? 0), 0)
+        const goal = mine.reduce((sum, p) => sum + (p.target ?? 0), 0)
+        return {
+          kind,
+          meta,
+          saved,
+          pct: goal > 0 ? `${Math.round((saved / goal) * 100)}%` : undefined,
+        }
+      }),
+    [area, pursuits],
+  )
 
   const shown = filter === 'all' ? pursuits : pursuits.filter((p) => p.kind === filter)
   const empty = pursuits.length === 0
@@ -128,23 +146,40 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
       ) : (
         <>
           <div className={styles.stats}>
-            <StatCard label="Goals" value={String(pursuits.length)} icon="target" />
-            <StatCard
-              label="Steps done"
-              value={`${stats.stepsDone}/${stats.stepsTotal}`}
-              icon="checkmarkCircle"
-            />
-            <StatCard
-              label="Next target"
-              value={stats.next ? mediumDate(stats.next) : '—'}
-              icon="clock"
-            />
-            <StatCard
-              label="Overdue"
-              value={String(stats.overdue)}
-              delta={stats.overdue ? `-${stats.overdue}` : undefined}
-              icon="flame"
-            />
+            {area.money
+              ? money.map((row) => (
+                  <StatCard
+                    key={row.kind}
+                    label={row.meta.statLabel ?? row.meta.label}
+                    value={formatMoney(row.saved)}
+                    delta={row.pct}
+                    /* Bills are money out — a bigger number is not a gain. */
+                    deltaTone={row.meta.spend ? 'neutral' : undefined}
+                    icon={row.meta.icon}
+                  />
+                ))
+              : [
+                  <StatCard key="goals" label="Goals" value={String(pursuits.length)} icon="target" />,
+                  <StatCard
+                    key="steps"
+                    label="Steps done"
+                    value={`${stats.stepsDone}/${stats.stepsTotal}`}
+                    icon="checkmarkCircle"
+                  />,
+                  <StatCard
+                    key="next"
+                    label="Next target"
+                    value={stats.next ? mediumDate(stats.next) : '—'}
+                    icon="clock"
+                  />,
+                  <StatCard
+                    key="overdue"
+                    label="Overdue"
+                    value={String(stats.overdue)}
+                    delta={stats.overdue ? `-${stats.overdue}` : undefined}
+                    icon="flame"
+                  />,
+                ]}
           </div>
 
           <div className={styles.section}>
@@ -174,6 +209,9 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
                     pursuit={pursuit}
                     area={area}
                     onRemove={() => remove(pursuit.id)}
+                    onContribute={
+                      area.money ? (value) => contribute(pursuit.id, value) : undefined
+                    }
                     onAddStep={(label) => addStep(pursuit.id, label)}
                     onToggleStep={(stepId) => toggleStep(pursuit.id, stepId)}
                     onRemoveStep={(stepId) => removeStep(pursuit.id, stepId)}

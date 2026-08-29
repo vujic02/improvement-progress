@@ -51,6 +51,7 @@ const CATEGORIES: Category[] = [
   },
   {
     id: 'goals',
+    route: 'dreams',
     eyebrow: 'Horizon',
     eyebrowColor: 'var(--accent-violet)',
     title: 'Big goals & dreams',

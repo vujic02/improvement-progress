@@ -12,6 +12,7 @@ import {
   Switch,
 } from '../../components'
 import { REMINDER_GROUPS, cadenceSummary } from '../../data/reminders'
+import { useDreams } from '../../dreams/context'
 import { useGrowth } from '../../growth/context'
 import { APP_NAME } from '../../lib/brand'
 import { PASSWORD_MIN } from '../../profile/ProfileProvider'
@@ -316,6 +317,7 @@ export function ProfilePage() {
   const { email, reminders } = useProfile()
   const { pursuits: goals } = useSavings()
   const { pursuits: growth } = useGrowth()
+  const { pursuits: dreams } = useDreams()
   const { all: types } = useTaskTypes()
 
   const [tab, setTab] = useState<Tab>('account')
@@ -350,6 +352,10 @@ export function ProfilePage() {
           <span className={styles.chip}>
             <Icon name="rocket" size={14} />
             {growth.length} growth goal{growth.length === 1 ? '' : 's'}
+          </span>
+          <span className={styles.chip}>
+            <Icon name="star" size={14} />
+            {dreams.length} dream{dreams.length === 1 ? '' : 's'}
           </span>
           <span className={styles.chip}>
             <Icon name="cube" size={14} />

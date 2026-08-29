@@ -1,4 +1,5 @@
-import { Eyebrow, Icon, type IconName } from '../../components'
+import { Icon, type IconName } from './Icon'
+import { Eyebrow } from './Text'
 import styles from './IconPicker.module.css'
 
 export interface IconPickerProps {
@@ -8,7 +9,7 @@ export interface IconPickerProps {
   label?: string
 }
 
-/** Single-select grid of icons for the create-a-type form. */
+/** Single-select grid of icons — the task type and dream create forms. */
 export function IconPicker({ icons, value, onChange, label = 'Icon' }: IconPickerProps) {
   return (
     <div className={styles.picker}>

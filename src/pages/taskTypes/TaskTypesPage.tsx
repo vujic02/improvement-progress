@@ -5,6 +5,7 @@ import {
   Eyebrow,
   GlassCard,
   Icon,
+  IconPicker,
   IconTile,
   Input,
   ProgressBar,
@@ -21,7 +22,6 @@ import {
 import { APP_NAME } from '../../lib/brand'
 import { useTaskTypes } from '../../taskTypes/context'
 import { DashboardLayout } from '../dashboard/DashboardLayout'
-import { IconPicker } from './IconPicker'
 import styles from './TaskTypesPage.module.css'
 
 const FIRST_ICON: IconName = PICKABLE_ICONS[0]
