@@ -12,6 +12,7 @@ import {
   Switch,
 } from '../../components'
 import { REMINDER_GROUPS, cadenceSummary } from '../../data/reminders'
+import { useGrowth } from '../../growth/context'
 import { APP_NAME } from '../../lib/brand'
 import { PASSWORD_MIN } from '../../profile/ProfileProvider'
 import { useProfile } from '../../profile/context'
@@ -313,7 +314,8 @@ function NotificationsTab() {
 export function ProfilePage() {
   const { userName } = useSession()
   const { email, reminders } = useProfile()
-  const { goals } = useSavings()
+  const { pursuits: goals } = useSavings()
+  const { pursuits: growth } = useGrowth()
   const { all: types } = useTaskTypes()
 
   const [tab, setTab] = useState<Tab>('account')
@@ -343,7 +345,11 @@ export function ProfilePage() {
         <div className={styles.chips}>
           <span className={styles.chip}>
             <Icon name="wallet" size={14} />
-            {goals.length} goal{goals.length === 1 ? '' : 's'}
+            {goals.length} money goal{goals.length === 1 ? '' : 's'}
+          </span>
+          <span className={styles.chip}>
+            <Icon name="rocket" size={14} />
+            {growth.length} growth goal{growth.length === 1 ? '' : 's'}
           </span>
           <span className={styles.chip}>
             <Icon name="cube" size={14} />

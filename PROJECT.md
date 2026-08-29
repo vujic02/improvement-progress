@@ -30,6 +30,7 @@ A personal day/month tracker. Screens live behind a hash router:
 | `#/boot` | Second greeting after auth, hands off to the dashboard |
 | `#/dashboard` | Month habit grid or week day-cards |
 | `#/savings` | Savings, investments and dreams |
+| `#/self-improvement` | Learning, training, nutrition, reading and five more |
 | `#/task-types` | Manage task types |
 | `#/profile` | Account details and notification settings |
 
@@ -66,37 +67,58 @@ choose before they can save.
 set. Adding an icon to the picker means adding a glyph to
 `src/components/Icon.tsx` first — the set is hand-drawn, not a library.
 
-## Savings & investing
+## Pursuits — savings and self-improvement
 
-Goals the user is putting money or time towards. One page, one grid, one modal.
+A **pursuit** is anything worked towards over time. Two pages are built on the
+same machinery and differ only in the kinds on offer and the copy around them:
+
+| Page | Area | Kinds |
+| --- | --- | --- |
+| `#/savings` | `SAVINGS_AREA` (`src/data/savings.ts`) | saving, investment, dream |
+| `#/self-improvement` | `GROWTH_AREA` (`src/data/growth.ts`) | learning, training, nutrition, reading, mind, creative, career, social, health |
+
+Everything else is shared and lives in `src/pages/pursuits/` — `PursuitPage`
+(header, stats, filter, grid, empty screen), `PursuitCard` and `PursuitModal`.
+**A third area should be a `PursuitArea` config plus a two-line page, never
+another copy of the card and grid.** The area config carries the page copy as
+well as the kinds, so the two pages read differently without branching.
+
+State: one `PursuitsProvider` component, mounted once per area with that area's
+own context object (`SavingsContext`, `GrowthContext`), so the two lists never
+see each other. `useSavings()` and `useGrowth()` are one-line wrappers.
 
 **Rules:**
 
-- **Three kinds only** (`GOAL_KINDS` in `src/data/savings.ts`): `saving` —
-  money set aside, `investment` — money put to work, `dream` — the long shot
-  with no price tag yet. Anything finer than that is a tag, not a kind; adding
-  a fourth means it has to survive that test.
-- A goal is **a name, a kind, a start date and a target date**. No amounts yet
-  — the page tracks intent and time, not balances.
-- **Names are capped at 40 characters** (`GOAL_NAME_MAX`), non-blank and unique
-  case-insensitively. Steps are capped at 60 (`STEP_NAME_MAX`) and are unique
-  within their own goal only.
+- **Kinds are a closed list per area.** Savings has three, deliberately: money
+  set aside, money put to work, and the thing with no price tag yet. Anything
+  finer is a tag, not a kind. Growth has nine, mirroring the categories the
+  day is already scored against — its icons and colours are lifted straight
+  from the matching `DEFAULT_TASK_TYPES` entries so a growth goal and its task
+  type read as the same thing.
+- A pursuit is **a name, a kind, a start date and a target date**. No amounts —
+  the pages track intent and time, not balances or weights.
+- **Names are capped at 40 characters** (`PURSUIT_NAME_MAX`), non-blank and
+  unique case-insensitively *within their area*. Steps are capped at 60
+  (`STEP_NAME_MAX`) and are unique within their own pursuit only.
 - The start date **defaults to today but stays editable** — people file things
   they started months ago. The target defaults to `DEFAULT_TARGET_MONTHS` ahead
   and cannot land before the start; both the `min`/`max` on the inputs and
-  `addGoal` enforce that.
+  `add` enforce that.
 - **Creation happens in a modal**, not inline on the page like task types do.
-  The name field is first, before the kind picker — you know what you're saving
-  for before you know what to call it.
-- **Steps are added after creation**, from the goal's own card. Progress is
-  just steps done over steps total; a goal with no steps sits at 0%.
+  The name field is first, before the kind picker — you know what you're after
+  before you know which box it goes in.
+- **Steps are added after creation**, from the pursuit's own card. They are the
+  rungs: 70kg, 75kg, 80kg, or learn CI, learn CD, wire up Actions, deploy to
+  the VPS. Progress is steps done over steps total; no steps means 0%.
 - Dates are stored as **`yyyy-mm-dd` strings**, the format `<input type="date">`
   speaks. Parse them with `parseDateInput` (`src/lib/date.ts`) and never with
   `new Date(value)` — that reads them as UTC and loses a day west of Greenwich.
 
-**Empty state:** the page has a dedicated empty screen rather than an empty
-grid, and it explains the three kinds. It is the only place they're spelled
-out, so keep it in step with `GOAL_KIND_META`.
+**Empty state:** each page has a dedicated empty screen rather than an empty
+grid. It introduces the **first three kinds only** (`EMPTY_KINDS_SHOWN`), both
+in the tilted tile trio and the strip below the call to action — an area with
+nine kinds would otherwise turn its own welcome into a menu. Order the kinds so
+the three most representative come first.
 
 ## Profile & notifications
 
@@ -144,15 +166,17 @@ reminders actually get delivered in-app.
   goals in `SavingsProvider`; both vanish on reload. When a backend lands those
   two providers are the only things that need to change — every consumer reads
   through `useTaskTypes()` or `useSavings()`.
-- Sidebar items `self` and `goals` have no pages yet. `NAV_ROUTES` in
+- Sidebar item `goals` has no page yet. `NAV_ROUTES` in
   `DashboardLayout` maps the ids that do; the rest are inert on purpose rather
   than dead links. The navbar's bell, search and settings buttons are inert for
   the same reason.
 - **Nothing actually sends a reminder.** The notifications tab configures them;
   there is no scheduler, no push registration and no email. `channels` is a
   preference, not a subscription.
-- Goals carry no amounts, contributions or currency. The card shows step
-  progress and time remaining only.
+- Pursuits carry no amounts, contributions, weights or currency. The card
+  shows step progress and time remaining only.
+- Steps are a flat list. Nothing nests, and nothing links a growth goal to the
+  task type it belongs to.
 - Dashboard data is mocked and seeded (`src/lib/seeded.ts`) so it looks
   lived-in and stays stable across reloads. `WEEK_TASK_POOL` has one row per
   default type **in the same order** — keep them in step, `useWeekData` indexes

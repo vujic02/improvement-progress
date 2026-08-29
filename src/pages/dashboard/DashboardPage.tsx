@@ -42,6 +42,7 @@ const CATEGORIES: Category[] = [
   },
   {
     id: 'self',
+    route: 'self-improvement',
     eyebrow: 'Growth',
     eyebrowColor: 'var(--accent-teal)',
     title: 'Self-improvement',

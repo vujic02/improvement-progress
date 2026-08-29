@@ -2,19 +2,19 @@ import { useState, type FormEvent } from 'react'
 import { Button, Icon, Input, Modal } from '../../components'
 import {
   DEFAULT_TARGET_MONTHS,
-  GOAL_KIND_META,
-  GOAL_KINDS,
-  GOAL_NAME_MAX,
-  type GoalKind,
-} from '../../data/savings'
+  PURSUIT_NAME_MAX,
+  kindMeta,
+  type PursuitArea,
+} from '../../data/pursuits'
 import { daysBetween, mediumDate, parseDateInput, toDateInput } from '../../lib/date'
-import type { NewGoal, Result } from '../../savings/context'
-import styles from './GoalModal.module.css'
+import type { NewPursuit, Result } from '../../pursuits/context'
+import styles from './PursuitModal.module.css'
 
-export interface GoalModalProps {
+export interface PursuitModalProps {
   open: boolean
+  area: PursuitArea
   onClose: () => void
-  onCreate: (goal: NewGoal) => Result
+  onCreate: (pursuit: NewPursuit) => Result
 }
 
 function defaultTarget(from: Date): string {
@@ -27,9 +27,9 @@ function defaultTarget(from: Date): string {
  * The fields. Mounted only while the dialog is open, so every open starts
  * blank and re-reads today's date — no reset effect needed.
  */
-function GoalForm({ onClose, onCreate }: Omit<GoalModalProps, 'open'>) {
+function PursuitForm({ area, onClose, onCreate }: Omit<PursuitModalProps, 'open'>) {
   const [name, setName] = useState('')
-  const [kind, setKind] = useState<GoalKind>('saving')
+  const [kind, setKind] = useState<string>(area.kinds[0])
   const [createdAt, setCreatedAt] = useState(() => toDateInput(new Date()))
   const [targetAt, setTargetAt] = useState(() => defaultTarget(new Date()))
   const [error, setError] = useState<string | null>(null)
@@ -50,20 +50,20 @@ function GoalForm({ onClose, onCreate }: Omit<GoalModalProps, 'open'>) {
       <Input
         label="Name"
         value={name}
-        maxLength={GOAL_NAME_MAX}
-        placeholder="e.g. Emergency fund"
+        maxLength={PURSUIT_NAME_MAX}
+        placeholder={area.namePlaceholder}
         onChange={(e) => {
           setName(e.target.value)
           setError(null)
         }}
-        trailing={`${name.length}/${GOAL_NAME_MAX}`}
+        trailing={`${name.length}/${PURSUIT_NAME_MAX}`}
       />
 
       <fieldset className={styles.kinds}>
         <legend className={styles.legend}>Type</legend>
         <div className={styles.kindGrid} role="radiogroup" aria-label="Type">
-          {GOAL_KINDS.map((option) => {
-            const meta = GOAL_KIND_META[option]
+          {area.kinds.map((option) => {
+            const meta = kindMeta(area, option)
             const selected = option === kind
             return (
               <button
@@ -142,16 +142,11 @@ function GoalForm({ onClose, onCreate }: Omit<GoalModalProps, 'open'>) {
   )
 }
 
-/** Create a saving, an investment or a dream. Name first, on purpose. */
-export function GoalModal({ open, onClose, onCreate }: GoalModalProps) {
+/** Create a pursuit. Name first, on purpose — the kind is the easy part. */
+export function PursuitModal({ open, area, onClose, onCreate }: PursuitModalProps) {
   return (
-    <Modal
-      open={open}
-      title="New goal"
-      subtitle="Name it, say what it is, and give it a finish line. Steps come after."
-      onClose={onClose}
-    >
-      <GoalForm onClose={onClose} onCreate={onCreate} />
+    <Modal open={open} title={area.modalTitle} subtitle={area.modalSubtitle} onClose={onClose}>
+      <PursuitForm area={area} onClose={onClose} onCreate={onCreate} />
     </Modal>
   )
 }

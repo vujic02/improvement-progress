@@ -8,13 +8,14 @@ import {
   IconTile,
   ProgressBar,
 } from '../../components'
-import { GOAL_KIND_META, STEP_NAME_MAX, type Goal } from '../../data/savings'
+import { STEP_NAME_MAX, kindMeta, type Pursuit, type PursuitArea } from '../../data/pursuits'
 import { daysBetween, mediumDate, parseDateInput } from '../../lib/date'
-import type { Result } from '../../savings/context'
-import styles from './GoalCard.module.css'
+import type { Result } from '../../pursuits/context'
+import styles from './PursuitCard.module.css'
 
-export interface GoalCardProps {
-  goal: Goal
+export interface PursuitCardProps {
+  pursuit: Pursuit
+  area: PursuitArea
   onRemove: () => void
   onAddStep: (label: string) => Result
   onToggleStep: (stepId: string) => void
@@ -31,19 +32,26 @@ function countdown(targetAt: string): { text: string; late: boolean } {
   return { text: `${-left} day${left === -1 ? '' : 's'} overdue`, late: true }
 }
 
-/** One saving, investment or dream, with its steps underneath. */
-export function GoalCard({ goal, onRemove, onAddStep, onToggleStep, onRemoveStep }: GoalCardProps) {
+/** One pursuit — a saving, a lift, a language — with its steps underneath. */
+export function PursuitCard({
+  pursuit,
+  area,
+  onRemove,
+  onAddStep,
+  onToggleStep,
+  onRemoveStep,
+}: PursuitCardProps) {
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  const meta = GOAL_KIND_META[goal.kind]
-  const done = goal.steps.filter((s) => s.done).length
-  const total = goal.steps.length
+  const meta = kindMeta(area, pursuit.kind)
+  const done = pursuit.steps.filter((s) => s.done).length
+  const total = pursuit.steps.length
   const pct = total ? (done / total) * 100 : 0
   const complete = total > 0 && done === total
-  const { text: timeLeft, late } = countdown(goal.targetAt)
-  const start = parseDateInput(goal.createdAt)
-  const target = parseDateInput(goal.targetAt)
+  const { text: timeLeft, late } = countdown(pursuit.targetAt)
+  const start = parseDateInput(pursuit.createdAt)
+  const target = parseDateInput(pursuit.targetAt)
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -61,7 +69,7 @@ export function GoalCard({ goal, onRemove, onAddStep, onToggleStep, onRemoveStep
       <div className={styles.head}>
         <IconTile icon={meta.icon} size={44} radius={12} tone="raised" color={meta.color} />
         <div className={styles.titles}>
-          <span className={styles.name}>{goal.name}</span>
+          <span className={styles.name}>{pursuit.name}</span>
           <span className={styles.kind}>
             <span className={styles.swatch} style={{ background: meta.color }} />
             {meta.label}
@@ -69,7 +77,7 @@ export function GoalCard({ goal, onRemove, onAddStep, onToggleStep, onRemoveStep
         </div>
         <IconButton
           icon="trash"
-          label={`Remove ${goal.name}`}
+          label={`Remove ${pursuit.name}`}
           size={18}
           className={styles.remove}
           onClick={onRemove}
@@ -86,16 +94,16 @@ export function GoalCard({ goal, onRemove, onAddStep, onToggleStep, onRemoveStep
         <ProgressBar
           value={pct}
           color={complete ? 'var(--accent-green)' : meta.color}
-          label={`${goal.name} progress`}
+          label={`${pursuit.name} progress`}
         />
       </div>
 
       <div className={styles.dates}>
         <span className={styles.date}>
           <Icon name="clock" size={14} />
-          {start ? mediumDate(start) : goal.createdAt}
+          {start ? mediumDate(start) : pursuit.createdAt}
           <span className={styles.arrow}>→</span>
-          {target ? mediumDate(target) : goal.targetAt}
+          {target ? mediumDate(target) : pursuit.targetAt}
         </span>
         <span className={[styles.left, late ? styles.late : ''].filter(Boolean).join(' ')}>
           {timeLeft}
@@ -103,8 +111,8 @@ export function GoalCard({ goal, onRemove, onAddStep, onToggleStep, onRemoveStep
       </div>
 
       <div className={styles.steps}>
-        {goal.steps.length ? (
-          goal.steps.map((step) => (
+        {pursuit.steps.length ? (
+          pursuit.steps.map((step) => (
             <div key={step.id} className={styles.step}>
               <CheckSquare
                 checked={step.done}
@@ -130,9 +138,7 @@ export function GoalCard({ goal, onRemove, onAddStep, onToggleStep, onRemoveStep
             </div>
           ))
         ) : (
-          <span className={styles.noSteps}>
-            No steps yet. Break it into the things you actually have to do.
-          </span>
+          <span className={styles.noSteps}>{area.noSteps}</span>
         )}
       </div>
 
@@ -141,8 +147,8 @@ export function GoalCard({ goal, onRemove, onAddStep, onToggleStep, onRemoveStep
           className={styles.addInput}
           value={draft}
           maxLength={STEP_NAME_MAX}
-          placeholder="Add a step…"
-          aria-label={`Add a step to ${goal.name}`}
+          placeholder={area.stepPlaceholder}
+          aria-label={`Add a step to ${pursuit.name}`}
           onChange={(e) => {
             setDraft(e.target.value)
             setError(null)
@@ -150,7 +156,7 @@ export function GoalCard({ goal, onRemove, onAddStep, onToggleStep, onRemoveStep
         />
         <IconButton
           icon="plus"
-          label={`Add step to ${goal.name}`}
+          label={`Add step to ${pursuit.name}`}
           size={18}
           className={styles.addButton}
           type="submit"
