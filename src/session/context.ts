@@ -6,6 +6,8 @@ export interface Session {
   signedIn: boolean
   signIn: (userName?: string) => void
   signOut: () => void
+  /** Renames the signed-in user — the profile page writes through this. */
+  setUserName: (userName: string) => void
 }
 
 export const DEFAULT_NAME = 'Nikola'

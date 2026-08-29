@@ -12,9 +12,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => setSignedIn(false), [])
 
+  const rename = useCallback((name: string) => {
+    if (name.trim()) setUserName(name.trim())
+  }, [])
+
   const value = useMemo(
-    () => ({ userName, signedIn, signIn, signOut }),
-    [userName, signedIn, signIn, signOut],
+    () => ({ userName, signedIn, signIn, signOut, setUserName: rename }),
+    [userName, signedIn, signIn, signOut, rename],
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

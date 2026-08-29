@@ -1,0 +1,208 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---- head ---- */
+.head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.titles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.name {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.kind {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text-muted);
+}
+
+.swatch {
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.remove {
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+/* ---- progress ---- */
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progressHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progressCount {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- dates ---- */
+.dates {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--glass-row);
+}
+
+.date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.arrow {
+  color: var(--text-faint);
+}
+
+.left {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+}
+
+.late {
+  color: var(--accent-rose);
+}
+
+/* ---- steps ---- */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stepLabel {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.stepDone {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.stepRemove {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.step:hover .stepRemove,
+.stepRemove:focus-visible {
+  opacity: 1;
+}
+
+.noSteps {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+
+/* ---- add a step ---- */
+.add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 14px;
+  border-radius: var(--r-lg);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: box-shadow var(--dur-fast) var(--ease);
+}
+
+.add:focus-within {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.addInput {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.addInput::placeholder {
+  color: var(--text-muted);
+}
+
+.addInput:focus {
+  outline: none;
+}
+
+.addButton {
+  flex-shrink: 0;
+}
+
+.addButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.error {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--accent-pink);
+}
+
+/* Touch devices have no hover, so the remove control has to stay visible. */
+@media (hover: none) {
+  .stepRemove {
+    opacity: 1;
+  }
+}

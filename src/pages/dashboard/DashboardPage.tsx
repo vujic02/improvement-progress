@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
-import { CategoryCard, SegmentedToggle, StatCard } from '../../components'
+import { CategoryCard, SegmentedToggle, StatCard, type IconName } from '../../components'
 import { TODAY_TASKS, type DayTask } from '../../data/tasks'
 import { useMonthData } from '../../data/useMonthData'
 import { useWeekData } from '../../data/useWeekData'
 import { APP_NAME } from '../../lib/brand'
 import { DAY_NAMES, monthTitle } from '../../lib/date'
+import { navigate, type Route } from '../../router'
 import { useTaskTypes } from '../../taskTypes/context'
 import { DashboardLayout } from './DashboardLayout'
 import { MonthView } from './MonthView'
@@ -18,13 +19,25 @@ const VIEW_OPTIONS = [
   { value: 'month' as const, label: 'Monthly' },
 ]
 
-const CATEGORIES = [
+interface Category {
+  id: string
+  eyebrow: string
+  eyebrowColor: string
+  title: string
+  icon: IconName
+  image: string
+  /** Set once the area has a page; the rest are still art. */
+  route?: Route
+}
+
+const CATEGORIES: Category[] = [
   {
     id: 'savings',
+    route: 'savings',
     eyebrow: 'Wealth',
     eyebrowColor: 'var(--accent-cyan)',
     title: 'Savings & investing',
-    icon: 'wallet' as const,
+    icon: 'wallet',
     image: '/assets/img/art-glow-blue.jpg',
   },
   {
@@ -32,7 +45,7 @@ const CATEGORIES = [
     eyebrow: 'Growth',
     eyebrowColor: 'var(--accent-teal)',
     title: 'Self-improvement',
-    icon: 'rocket' as const,
+    icon: 'rocket',
     image: '/assets/img/art-jellyfish-blue.jpg',
   },
   {
@@ -40,7 +53,7 @@ const CATEGORIES = [
     eyebrow: 'Horizon',
     eyebrowColor: 'var(--accent-violet)',
     title: 'Big goals & dreams',
-    icon: 'cube' as const,
+    icon: 'cube',
     image: '/assets/img/art-jellyfish-violet.jpg',
   },
 ]
@@ -92,14 +105,11 @@ export function DashboardPage({ defaultView = 'month' }: DashboardPageProps) {
       </div>
 
       <div className={styles.categories}>
-        {CATEGORIES.map((category) => (
+        {CATEGORIES.map(({ id, route, ...category }) => (
           <CategoryCard
-            key={category.id}
-            eyebrow={category.eyebrow}
-            eyebrowColor={category.eyebrowColor}
-            title={category.title}
-            icon={category.icon}
-            image={category.image}
+            key={id}
+            {...category}
+            onOpen={route ? () => navigate(route) : undefined}
           />
         ))}
       </div>

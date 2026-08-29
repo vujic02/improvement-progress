@@ -26,13 +26,16 @@ const NAV_GROUPS: NavGroup[] = [
 /** Nav ids that have a page behind them. The rest stay inert until they do. */
 const NAV_ROUTES: Partial<Record<string, Route>> = {
   dashboard: 'dashboard',
+  savings: 'savings',
   types: 'task-types',
+  profile: 'profile',
 }
 
 const FOOTER_NOTE = `${APP_NAME} — your month, your day, your call.`
 
 const FOOTER_LINKS = [
   { label: 'Dashboard', href: hrefFor('dashboard') },
+  { label: 'Savings', href: hrefFor('savings') },
   { label: 'Task types', href: hrefFor('task-types') },
 ]
 
