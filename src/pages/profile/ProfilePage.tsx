@@ -324,7 +324,7 @@ export function ProfilePage() {
   const remindersOn = reminders.filter((r) => r.enabled).length
 
   return (
-    <DashboardLayout activeId="profile" trail={[APP_NAME, 'Profile']} title="Profile">
+    <DashboardLayout activeId="profile" trail={[APP_NAME, 'Profile']}>
       <div className={styles.pageTitles}>
         <span className={styles.title}>Profile</span>
         <span className={styles.blurb}>

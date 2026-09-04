@@ -47,7 +47,6 @@ export function DreamsPage() {
     <DashboardLayout
       activeId="goals"
       trail={[APP_NAME, 'Big goals & dreams']}
-      title="Big goals & dreams"
     >
       <div className={styles.pageHead}>
         <div className={styles.pageTitles}>

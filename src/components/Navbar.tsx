@@ -4,14 +4,13 @@ import { IconButton } from './IconButton'
 import styles from './Navbar.module.css'
 
 export interface NavbarProps {
-  /** Breadcrumb segments, coarsest first. */
+  /** Breadcrumb segments, coarsest first. The last one is the page name. */
   trail: string[]
-  title: string
   user: string
   onSignOut?: () => void
 }
 
-export function Navbar({ trail, title, user, onSignOut }: NavbarProps) {
+export function Navbar({ trail, user, onSignOut }: NavbarProps) {
   return (
     <header className={styles.bar}>
       <div className={styles.left}>
@@ -23,7 +22,6 @@ export function Navbar({ trail, title, user, onSignOut }: NavbarProps) {
             </Fragment>
           ))}
         </nav>
-        <span className={styles.title}>{title}</span>
       </div>
       <div className={styles.right}>
         <IconButton icon="search" label="Search" size={18} />

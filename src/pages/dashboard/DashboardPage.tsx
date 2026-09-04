@@ -80,7 +80,7 @@ export function DashboardPage({ defaultView = 'month' }: DashboardPageProps) {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)))
 
   return (
-    <DashboardLayout activeId="dashboard" trail={[APP_NAME, 'Dashboard']} title="Dashboard">
+    <DashboardLayout activeId="dashboard" trail={[APP_NAME, 'Dashboard']}>
       <div className={styles.pageHead}>
         <div className={styles.pageTitles}>
           <span className={styles.month}>{monthTitle(now)}</span>

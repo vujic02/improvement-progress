@@ -54,7 +54,7 @@ export function TaskTypesPage() {
   }
 
   return (
-    <DashboardLayout activeId="types" trail={[APP_NAME, 'Task types']} title="Task types">
+    <DashboardLayout activeId="types" trail={[APP_NAME, 'Task types']}>
       <div className={styles.pageHead}>
         <div className={styles.pageTitles}>
           <span className={styles.title}>Task types</span>

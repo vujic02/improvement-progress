@@ -26,13 +26,6 @@
   color: var(--text);
 }
 
-.title {
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.4;
-  color: var(--text);
-}
-
 .right {
   display: flex;
   align-items: center;

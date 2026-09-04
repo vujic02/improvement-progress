@@ -48,13 +48,11 @@ export interface DashboardLayoutProps {
   activeId: string
   /** Breadcrumb segments, coarsest first. */
   trail: string[]
-  /** Navbar title, usually the last breadcrumb. */
-  title: string
   children: ReactNode
 }
 
 /** Sidebar, navbar, backdrop and footer — the chrome every signed-in page sits in. */
-export function DashboardLayout({ activeId, trail, title, children }: DashboardLayoutProps) {
+export function DashboardLayout({ activeId, trail, children }: DashboardLayoutProps) {
   const { userName, signOut } = useSession()
 
   const leave = () => {
@@ -85,7 +83,7 @@ export function DashboardLayout({ activeId, trail, title, children }: DashboardL
       />
 
       <div className={styles.main}>
-        <Navbar trail={trail} title={title} user={userName} onSignOut={leave} />
+        <Navbar trail={trail} user={userName} onSignOut={leave} />
         {children}
         <Footer note={FOOTER_NOTE} links={FOOTER_LINKS} />
       </div>

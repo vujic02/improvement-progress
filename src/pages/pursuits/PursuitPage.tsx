@@ -89,7 +89,7 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
   const empty = pursuits.length === 0
 
   return (
-    <DashboardLayout activeId={area.navId} trail={[APP_NAME, area.title]} title={area.title}>
+    <DashboardLayout activeId={area.navId} trail={[APP_NAME, area.title]}>
       <div className={styles.pageHead}>
         <div className={styles.pageTitles}>
           <span className={styles.title}>{area.title}</span>
