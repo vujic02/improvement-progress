@@ -1,0 +1,246 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ---- photo banner ---- */
+.banner {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--surface-donut);
+}
+
+.image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Stands in when there is no picture, or the one given failed to load. */
+.bannerFallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(88, 44, 255, 0.4), transparent 62%),
+    var(--glass-row);
+  color: var(--text-muted);
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(2, 5, 21, 0.92) 4%, rgba(2, 5, 21, 0.1) 62%);
+  pointer-events: none;
+}
+
+.badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+  background: rgba(2, 5, 21, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text);
+}
+
+.remove {
+  position: absolute;
+  top: 14px;
+  right: 12px;
+  border-radius: var(--r-md);
+  background: rgba(2, 5, 21, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.name {
+  position: relative;
+  padding: 0 18px 16px;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text);
+  text-shadow: 0 2px 12px rgba(2, 5, 21, 0.8);
+  overflow-wrap: anywhere;
+}
+
+/* ---- body ---- */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 22px 20px;
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progressHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progressCount {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.dates {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  background: var(--glass-row);
+}
+
+.date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.arrow {
+  color: var(--text-faint);
+}
+
+.left {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+}
+
+.late {
+  color: var(--accent-rose);
+}
+
+/* ---- steps ---- */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stepLabel {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.stepDone {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.stepRemove {
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.step:hover .stepRemove,
+.stepRemove:focus-visible {
+  opacity: 1;
+}
+
+.noSteps {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+
+/* ---- add a step ---- */
+.add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 14px;
+  border-radius: var(--r-lg);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: box-shadow var(--dur-fast) var(--ease);
+}
+
+.add:focus-within {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.addInput {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.addInput::placeholder {
+  color: var(--text-muted);
+}
+
+.addInput:focus {
+  outline: none;
+}
+
+.addButton {
+  flex-shrink: 0;
+}
+
+.addButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.error {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--accent-pink);
+}
+
+@media (hover: none) {
+  .stepRemove {
+    opacity: 1;
+  }
+}

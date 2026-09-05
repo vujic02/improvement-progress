@@ -1,0 +1,23 @@
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  min-height: 24px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.links {
+  display: flex;
+  gap: 18px;
+}
+
+.link {
+  color: var(--text-muted);
+}
+
+.link:hover {
+  color: var(--accent-cyan);
+}

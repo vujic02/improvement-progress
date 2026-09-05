@@ -1,0 +1,138 @@
+.screen {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  background: var(--bg-page);
+  overflow: hidden;
+}
+
+.art,
+.artGlow,
+.vignette,
+.wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.art {
+  background: url('/assets/img/art-jellyfish-violet.jpg') center / cover no-repeat;
+  opacity: 0.62;
+}
+
+.artGlow {
+  background: url('/assets/img/art-glow-blue.jpg') left center / cover no-repeat;
+  opacity: 0.5;
+  mix-blend-mode: screen;
+}
+
+.vignette {
+  background: radial-gradient(
+    62% 66% at 50% 48%,
+    rgba(2, 5, 21, 0.3) 0%,
+    rgba(2, 5, 21, 0.2) 48%,
+    rgba(2, 5, 21, 0.7) 100%
+  );
+}
+
+.wash {
+  background: linear-gradient(
+    159.02deg,
+    rgba(15, 18, 59, 0.34) 12.52%,
+    rgba(9, 13, 46, 0.18) 57.79%,
+    rgba(2, 5, 21, 0.58) 89.64%
+  );
+}
+
+.card {
+  position: relative;
+  width: 452px;
+  max-width: 100%;
+  border-radius: var(--r-xl);
+  background: var(--glass-a);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  padding: 38px 34px 34px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  animation: jv-fade 400ms var(--ease) both;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  text-align: center;
+}
+
+.wordmark {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.blurb {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-muted);
+  max-width: 320px;
+  text-wrap: pretty;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.rule {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.social {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.foot {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.footLink {
+  font-weight: 700;
+}

@@ -1,0 +1,13 @@
+.card {
+  border-radius: var(--r-xl);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.a {
+  background: var(--glass-a);
+}
+
+.b {
+  background: var(--glass-b);
+}

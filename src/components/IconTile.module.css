@@ -1,0 +1,19 @@
+.tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.accent {
+  background: var(--accent);
+  color: var(--text);
+}
+
+.raised {
+  background: var(--surface-raised);
+}
+
+.plain {
+  background: transparent;
+}

@@ -1,0 +1,138 @@
+.card {
+  --tint: var(--accent);
+
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding: 16px 18px 16px 20px;
+  border-radius: var(--r-lg);
+  background: var(--glass-row);
+  box-shadow: inset 0 0 0 1px var(--line);
+  overflow: hidden;
+  animation: notif-in var(--dur-base) var(--ease);
+}
+
+/* The tinted rail down the left edge, and the glow it throws inwards. */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--tint);
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  left: -60px;
+  top: 50%;
+  width: 220px;
+  height: 220px;
+  transform: translateY(-50%);
+  background: radial-gradient(circle, currentcolor, transparent 68%);
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.muted {
+  opacity: 0.5;
+  filter: saturate(0.6);
+}
+
+.tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: var(--r-md);
+  background: var(--surface-raised);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--tint);
+}
+
+.text {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  flex: 1;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+/* Breathing dot that marks a notification as live rather than a sample. */
+.live {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--tint);
+  animation: notif-pulse 2s var(--ease) infinite;
+}
+
+.body {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--tint);
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+@keyframes notif-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes notif-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}

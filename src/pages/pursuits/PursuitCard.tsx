@@ -1,0 +1,256 @@
+import { useState, type FormEvent } from 'react'
+import {
+  CheckSquare,
+  Eyebrow,
+  GlassCard,
+  Icon,
+  IconButton,
+  IconTile,
+  ProgressBar,
+} from '../../components'
+import {
+  STEP_NAME_MAX,
+  formatMoney,
+  kindMeta,
+  parseAmount,
+  type Pursuit,
+  type PursuitArea,
+} from '../../data/pursuits'
+import { daysBetween, mediumDate, parseDateInput } from '../../lib/date'
+import type { Result } from '../../pursuits/context'
+import styles from './PursuitCard.module.css'
+
+export interface PursuitCardProps {
+  pursuit: Pursuit
+  area: PursuitArea
+  onRemove: () => void
+  /** Money areas only. Adds to the balance; negatives correct a mistake. */
+  onContribute?: (amount: number) => Result
+  onAddStep: (label: string) => Result
+  onToggleStep: (stepId: string) => void
+  onRemoveStep: (stepId: string) => void
+}
+
+/** How much time is left, in the words the card actually shows. */
+function countdown(targetAt: string): { text: string; late: boolean } {
+  const target = parseDateInput(targetAt)
+  if (!target) return { text: 'No target date', late: false }
+  const left = daysBetween(new Date(), target)
+  if (left > 0) return { text: `${left} day${left === 1 ? '' : 's'} left`, late: false }
+  if (left === 0) return { text: 'Due today', late: false }
+  return { text: `${-left} day${left === -1 ? '' : 's'} overdue`, late: true }
+}
+
+/** One pursuit — a saving, a lift, a language — with its steps underneath. */
+export function PursuitCard({
+  pursuit,
+  area,
+  onRemove,
+  onContribute,
+  onAddStep,
+  onToggleStep,
+  onRemoveStep,
+}: PursuitCardProps) {
+  const [draft, setDraft] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [amount, setAmount] = useState('')
+
+  const meta = kindMeta(area, pursuit.kind)
+  const done = pursuit.steps.filter((s) => s.done).length
+  const total = pursuit.steps.length
+
+  // A money goal measures itself in euros; everything else counts its steps.
+  const money = Boolean(area.money)
+  const hasSteps = area.steps !== false
+  const saved = pursuit.saved ?? 0
+  const goal = pursuit.target ?? 0
+  const byMoney = money && goal > 0
+  const pct = byMoney ? (saved / goal) * 100 : total ? (done / total) * 100 : 0
+  const complete = byMoney ? saved >= goal : hasSteps && total > 0 && done === total
+  // Nothing to measure against yet — a bar pinned at 0 just looks broken.
+  const showBar = byMoney || hasSteps
+  // Money out stays its own colour when it is finished; only gains go green.
+  const barColor = complete && !meta.spend ? 'var(--accent-green)' : meta.color
+  const verb = meta.spend ? 'paid' : 'put aside'
+  const { text: timeLeft, late } = countdown(pursuit.targetAt)
+  const start = parseDateInput(pursuit.createdAt)
+  const target = parseDateInput(pursuit.targetAt)
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const result = onAddStep(draft)
+    if (result.ok) {
+      setDraft('')
+      setError(null)
+    } else {
+      setError(result.reason)
+    }
+  }
+
+  return (
+    <GlassCard padding="22px 22px 20px" className={styles.card}>
+      <div className={styles.head}>
+        <IconTile icon={meta.icon} size={44} radius={12} tone="raised" color={meta.color} />
+        <div className={styles.titles}>
+          <span className={styles.name}>{pursuit.name}</span>
+          <span className={styles.kind}>
+            <span className={styles.swatch} style={{ background: meta.color }} />
+            {meta.label}
+          </span>
+        </div>
+        <IconButton
+          icon="trash"
+          label={`Remove ${pursuit.name}`}
+          size={18}
+          className={styles.remove}
+          onClick={onRemove}
+        />
+      </div>
+
+      <div className={styles.progress}>
+        <div className={styles.progressHead}>
+          <Eyebrow>{complete ? 'Done' : 'Progress'}</Eyebrow>
+          <span className={styles.progressCount}>
+            {byMoney ? (
+              <>
+                {formatMoney(saved)}
+                <span className={styles.progressOf}> of {formatMoney(goal)}</span>
+              </>
+            ) : money ? (
+              <>
+                {formatMoney(saved)}
+                <span className={styles.progressOf}> {verb}</span>
+              </>
+            ) : (
+              `${done}/${total} steps`
+            )}
+          </span>
+        </div>
+        {showBar ? (
+          <ProgressBar value={pct} color={barColor} label={`${pursuit.name} progress`} />
+        ) : null}
+      </div>
+
+      {money && onContribute ? (
+        <form
+          className={styles.contribute}
+          onSubmit={(event) => {
+            event.preventDefault()
+            const value = parseAmount(amount)
+            const result =
+              value === null || Number.isNaN(value)
+                ? ({ ok: false, reason: 'Enter an amount.' } as const)
+                : onContribute(value)
+            if (result.ok) {
+              setAmount('')
+              setError(null)
+            } else {
+              setError(result.reason)
+            }
+          }}
+        >
+          <span className={styles.currency} aria-hidden="true">
+            €
+          </span>
+          <input
+            className={styles.contributeInput}
+            type="number"
+            inputMode="decimal"
+            step="0.01"
+            value={amount}
+            placeholder={meta.spend ? 'Log what you paid' : 'Put more aside'}
+            aria-label={`Add an amount to ${pursuit.name}`}
+            onChange={(e) => {
+              setAmount(e.target.value)
+              setError(null)
+            }}
+          />
+          <IconButton
+            icon="plus"
+            label={`Add to ${pursuit.name}`}
+            size={18}
+            className={styles.contributeButton}
+            type="submit"
+            disabled={!amount.trim()}
+          />
+        </form>
+      ) : null}
+
+      <div className={styles.dates}>
+        <span className={styles.date}>
+          <Icon name="clock" size={14} />
+          {start ? mediumDate(start) : pursuit.createdAt}
+          <span className={styles.arrow}>→</span>
+          {target ? mediumDate(target) : pursuit.targetAt}
+        </span>
+        <span className={[styles.left, late ? styles.late : ''].filter(Boolean).join(' ')}>
+          {timeLeft}
+        </span>
+      </div>
+
+      {hasSteps ? (
+        <div className={styles.steps}>
+          {pursuit.steps.length ? (
+            pursuit.steps.map((step) => (
+              <div key={step.id} className={styles.step}>
+                <CheckSquare
+                  checked={step.done}
+                  color={meta.color}
+                  size={18}
+                  onToggle={() => onToggleStep(step.id)}
+                  label={step.label}
+                />
+                <span
+                  className={[styles.stepLabel, step.done ? styles.stepDone : '']
+                    .filter(Boolean)
+                    .join(' ')}
+                >
+                  {step.label}
+                </span>
+                <IconButton
+                  icon="close"
+                  label={`Remove ${step.label}`}
+                  size={14}
+                  className={styles.stepRemove}
+                  onClick={() => onRemoveStep(step.id)}
+                />
+              </div>
+            ))
+          ) : (
+            <span className={styles.noSteps}>{area.noSteps}</span>
+          )}
+        </div>
+      ) : null}
+
+      {hasSteps ? (
+        <form className={styles.add} onSubmit={submit}>
+          <input
+            className={styles.addInput}
+            value={draft}
+            maxLength={STEP_NAME_MAX}
+            placeholder={area.stepPlaceholder}
+            aria-label={`Add a step to ${pursuit.name}`}
+            onChange={(e) => {
+              setDraft(e.target.value)
+              setError(null)
+            }}
+          />
+          <IconButton
+            icon="plus"
+            label={`Add step to ${pursuit.name}`}
+            size={18}
+            className={styles.addButton}
+            type="submit"
+            disabled={!draft.trim()}
+          />
+        </form>
+      ) : null}
+
+      {error ? (
+        <span className={styles.error} role="alert">
+          {error}
+        </span>
+      ) : null}
+    </GlassCard>
+  )
+}

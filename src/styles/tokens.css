@@ -1,0 +1,54 @@
+:root {
+  /* base surfaces */
+  --bg-deep: #020515;
+  --bg-page: linear-gradient(159.02deg, #0f123b 12.52%, #090d2e 57.79%, #020515 89.64%);
+  --surface-sunken: #0f1535;
+  --surface-raised: #1a1f37;
+  --surface-donut: #060b26;
+  --surface-track: #22234b;
+
+  /* glass panels */
+  --glass-a: linear-gradient(127.57deg, rgba(6, 11, 40, 0.94) 19.41%, rgba(10, 14, 35, 0.49) 76.65%);
+  --glass-b: linear-gradient(170.87deg, rgba(6, 11, 40, 0.74) 11.86%, rgba(10, 14, 35, 0.71) 114.37%);
+  --glass-row: linear-gradient(126.97deg, #060c29 28.26%, rgba(4, 12, 48, 0.5) 91.2%);
+  --glass-blur: blur(120px);
+
+  /* accents */
+  --accent: #0075ff;
+  --accent-cyan: #2cd9ff;
+  --accent-violet: #582cff;
+  --accent-green: #01b574;
+  --accent-teal: #4fd1c5;
+  --accent-pink: #e5399e;
+  --accent-orange: #f79e1b;
+  --accent-lime: #a3e635;
+  --accent-purple: #9f7aea;
+  --accent-amber: #ffb547;
+  --accent-rose: #ff5b79;
+  --accent-indigo: #7b61ff;
+
+  /* text */
+  --text: #ffffff;
+  --text-muted: #a0aec0;
+  --text-faint: rgba(160, 174, 192, 0.6);
+
+  /* lines */
+  --line: rgba(255, 255, 255, 0.1);
+  --line-strong: rgba(255, 255, 255, 0.28);
+  --line-inset: inset 0 0 0 0.5px rgba(226, 232, 240, 0.3);
+
+  /* radii */
+  --r-sm: 6px;
+  --r-md: 12px;
+  --r-lg: 15px;
+  --r-xl: 20px;
+
+  /* motion */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+
+  /* type */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'DM Sans', 'Plus Jakarta Sans', sans-serif;
+}
