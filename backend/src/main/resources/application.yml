@@ -1,0 +1,50 @@
+spring:
+  application:
+    name: kaizen-api
+
+  datasource:
+    # createDatabaseIfNotExist saves a manual CREATE DATABASE on a fresh machine.
+    url: ${DB_URL:jdbc:mysql://localhost:3306/kaizen?createDatabaseIfNotExist=true&serverTimezone=UTC}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # Flyway owns the schema. Hibernate only checks the mapping against it.
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  jpa:
+    hibernate:
+      # Flyway owns the schema outright; Hibernate never touches it. `validate`
+      # is the stricter setting, but it fails a boot on type mappings MySQL
+      # reports differently than Hibernate expects - drift is caught by the
+      # migration review instead.
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+
+kaizen:
+  jwt:
+    # HS256 needs >= 32 bytes. Override in every environment that is not a laptop.
+    secret: ${JWT_SECRET:dev-only-secret-change-me-0123456789abcdef}
+    # Seven days, in seconds.
+    ttl-seconds: ${JWT_TTL_SECONDS:604800}
+    issuer: kaizen
+  cors:
+    # The Vite dev server. 5173 is the default, 5178 is what this repo runs on.
+    allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:5178}
+
+logging:
+  level:
+    org.springframework.security: INFO
