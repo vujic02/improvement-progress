@@ -3,9 +3,19 @@
 Working notes for decisions that aren't obvious from the code. Rules here are
 the source of truth; if the code and this file disagree, the code is the bug.
 
+## Two halves
+
+`frontend/` is the React app; `backend/` is a Spring Boot + MySQL **API and
+nothing else** — it serves no HTML and no assets, and the two run on separate
+origins. `README.md` has the routes and how to start each half.
+
+Where a rule below is about validation, it now holds in two places. The client
+check is what makes the form pleasant; the server check is the guarantee. Both
+have to move together — a rule loosened on one side only is a bug on the other.
+
 ## Naming
 
-Two names, and they are **not** interchangeable. Both live in `src/lib/brand.ts`
+Two names, and they are **not** interchangeable. Both live in `frontend/src/lib/brand.ts`
 and nothing should hardcode either one again.
 
 | Constant | Value | Used for |
@@ -16,7 +26,7 @@ and nothing should hardcode either one again.
 
 Kaizen is Japanese for continuous improvement, which is the whole premise.
 Jarvis stays as the assistant persona — renaming one must never rename the
-other. The three remaining literal "Jarvis" strings in `src/` are code comments
+other. The three remaining literal "Jarvis" strings in `frontend/src/` are code comments
 describing the assistant, which is correct.
 
 ## What this is
@@ -45,7 +55,7 @@ grid rows and the analysis breakdown on the dashboard.
 **Rules:**
 
 - **12 defaults**, shipped with the app, in `DEFAULT_TASK_TYPES`
-  (`src/data/taskTypes.ts`). They cannot be renamed or removed.
+  (`frontend/src/data/taskTypes.ts`). They cannot be renamed or removed.
 - **Up to 10 custom types** per user, on top of the defaults
   (`CUSTOM_TASK_TYPE_LIMIT`). So 22 rows maximum in the habit grid.
 
@@ -66,7 +76,7 @@ choose before they can save.
 
 **Icons:** the create form offers `PICKABLE_ICONS`, a subset of the app's icon
 set. Adding an icon to the picker means adding a glyph to
-`src/components/Icon.tsx` first — the set is hand-drawn, not a library.
+`frontend/src/components/Icon.tsx` first — the set is hand-drawn, not a library.
 
 ## Pursuits — savings and self-improvement
 
@@ -75,11 +85,11 @@ same machinery and differ only in the kinds on offer and the copy around them:
 
 | Page | Area | Kinds |
 | --- | --- | --- |
-| `#/savings` | `SAVINGS_AREA` (`src/data/savings.ts`) | saving, investment, debt, bills |
-| `#/self-improvement` | `GROWTH_AREA` (`src/data/growth.ts`) | learning, training, nutrition, reading, mind, creative, career, social, health |
+| `#/savings` | `SAVINGS_AREA` (`frontend/src/data/savings.ts`) | saving, investment, debt, bills |
+| `#/self-improvement` | `GROWTH_AREA` (`frontend/src/data/growth.ts`) | learning, training, nutrition, reading, mind, creative, career, social, health |
 | `#/dreams` | none — see below | none |
 
-Everything else is shared and lives in `src/pages/pursuits/` — `PursuitPage`
+Everything else is shared and lives in `frontend/src/pages/pursuits/` — `PursuitPage`
 (header, stats, filter, grid, empty screen), `PursuitCard` and `PursuitModal`.
 **A third area should be a `PursuitArea` config plus a two-line page, never
 another copy of the card and grid.** The area config carries the page copy as
@@ -121,13 +131,13 @@ see each other. `useSavings()` and `useGrowth()` are one-line wrappers.
   The store still carries `steps` for every pursuit; the savings card simply
   never renders them.
 - Dates are stored as **`yyyy-mm-dd` strings**, the format `<input type="date">`
-  speaks. Parse them with `parseDateInput` (`src/lib/date.ts`) and never with
+  speaks. Parse them with `parseDateInput` (`frontend/src/lib/date.ts`) and never with
   `new Date(value)` — that reads them as UTC and loses a day west of Greenwich.
 
 **Money** (savings only, gated on `PursuitArea.money`):
 
 - **Euros, via one constant.** `CURRENCY` and `formatMoney` live in
-  `src/data/pursuits.ts` — nothing else should hardcode a symbol or a locale,
+  `frontend/src/data/pursuits.ts` — nothing else should hardcode a symbol or a locale,
   so switching currency later, or making it a per-user setting, is one edit.
 - Both amounts are **optional**. A goal with no target still takes
   contributions and just shows a running total.
@@ -180,7 +190,7 @@ What distinguishes a dream is the picture of it, so the card leads with one.
 Users paste arbitrary URLs. That is fine here, and it stays fine only while all
 three of these hold:
 
-1. **https only.** `safeImageUrl` (`src/data/pursuits.ts`) parses with `new
+1. **https only.** `safeImageUrl` (`frontend/src/data/pursuits.ts`) parses with `new
    URL()` and returns the value only for `https:`. `add` re-checks before
    storing, so nothing else can reach state. `javascript:` never executes from
    an `<img src>` in any current browser, but it is blocked here so it cannot
@@ -192,12 +202,19 @@ three of these hold:
    third-party image already hands that host the user's IP and user-agent —
    there is no reason to hand it the page they were on as well.
 
-There is **no SSRF surface**: the app has no server, and nothing we control
-ever fetches the URL. When a backend does land, it must apply rule 1 again on
-write rather than trusting the client, and the deployment should carry a
-`Content-Security-Policy` with `img-src https:` as the backstop. No CSP is set
-today — Vite's dev server and the app's inline styles would need working
-through first.
+Rule 1 is applied **twice**: `safeImageUrl` on the client, and again in
+`PursuitService.imageFor` before anything reaches MySQL. The server does not
+trust the client's check, because it cannot — a request can be made without
+one.
+
+There is still **no SSRF surface**. The API stores the address and hands it
+back; nothing we run ever fetches it. That holds only while it stays true, so
+any future feature that resolves one of these URLs server-side — a thumbnail, a
+preview, a health check — needs its own allowlist before it ships.
+
+The deployment should carry a `Content-Security-Policy` with `img-src https:`
+as the backstop. No CSP is set today — Vite's dev server and the app's inline
+styles would need working through first.
 
 ## Profile & notifications
 
@@ -218,7 +235,7 @@ the same twice.
 
 **Notifications** is a list of individual reminders, each with its own switch.
 
-- Reminders are defined in `DEFAULT_REMINDERS` (`src/data/reminders.ts`) and
+- Reminders are defined in `DEFAULT_REMINDERS` (`frontend/src/data/reminders.ts`) and
   sorted into three groups by `REMINDER_GROUPS` — money, days, account.
 - A reminder is either **scheduled** or **event-driven** (`scheduled: false`).
   Scheduled ones expose daily / weekly / monthly plus a day and a time; event
@@ -231,7 +248,7 @@ the same twice.
   **not** turn the individual reminders off, so unpausing restores exactly what
   was set before.
 
-**`NotificationCard`** (`src/components/`) is the reminder as the user sees it:
+**`NotificationCard`** (`frontend/src/components/`) is the reminder as the user sees it:
 tinted left rail, glow bleeding in from that edge, icon tile, title, body and
 the schedule line. It takes a `color` and drives everything off it through the
 `--tint` custom property, so a reminder's own colour carries into its
@@ -241,10 +258,20 @@ reminders actually get delivered in-app.
 
 ## Known gaps
 
-- **Nothing is persisted.** Custom types live in `TaskTypesProvider` state and
-  goals in `SavingsProvider`; both vanish on reload. When a backend lands those
-  two providers are the only things that need to change — every consumer reads
-  through `useTaskTypes()` or `useSavings()`.
+- **The frontend is not wired to the backend.** `backend/` persists all of it —
+  accounts, custom types, pursuits, steps, reminder settings — but the app has
+  not been pointed at it yet. Custom types still live in `TaskTypesProvider`
+  state and goals in `PursuitsProvider`, and both still vanish on reload.
+  Those providers plus `SessionProvider` are the only things that need to
+  change: every consumer reads through `useTaskTypes()`, `useSavings()`,
+  `useGrowth()` or `useDreams()`.
+- **Two lists are mirrored across the split** and have to stay in step:
+  `DEFAULT_TASK_TYPES`' labels and `CUSTOM_COLORS` (`TaskTypeDefaults` on the
+  server), and `DEFAULT_REMINDERS`' ids (`ReminderDefaults`). The server needs
+  the labels to enforce uniqueness against the defaults and the colours because
+  it assigns them; it needs the reminder ids because it stores the settings
+  those ids key. Everything else about them — icons, copy, groups — stays on
+  the client, which is the only place it is read.
 - Every sidebar item now has a page. The navbar's bell, search and settings
   buttons are still inert on purpose rather than dead links.
 - **No `Content-Security-Policy` is set.** See the dreams section — the image
@@ -256,18 +283,18 @@ reminders actually get delivered in-app.
   shows step progress and time remaining only.
 - Steps are a flat list. Nothing nests, and nothing links a growth goal to the
   task type it belongs to.
-- Dashboard data is mocked and seeded (`src/lib/seeded.ts`) so it looks
+- Dashboard data is mocked and seeded (`frontend/src/lib/seeded.ts`) so it looks
   lived-in and stays stable across reloads. `WEEK_TASK_POOL` has one row per
   default type **in the same order** — keep them in step, `useWeekData` indexes
   the pool to pick a type.
 - The Vision UI design system bundle the original artboard imported
   (`_ds/vision-ui-dashboard-design-system-aefacb…`) is not in this repo. Every
-  component in `src/components/` was rebuilt from the artboard's inline styles.
+  component in `frontend/src/components/` was rebuilt from the artboard's inline styles.
 
 ## Voice
 
 The welcome screen speaks its greeting through the Web Speech API
-(`src/lib/speech.ts`). Two constraints worth remembering:
+(`frontend/src/lib/speech.ts`). Two constraints worth remembering:
 
 - Browsers block speech until the document has user activation. A cold load of
   `#/` is usually silent until the first click; the screen detects this and
