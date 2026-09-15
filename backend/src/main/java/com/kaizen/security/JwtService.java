@@ -17,14 +17,22 @@ import io.jsonwebtoken.security.Keys;
 
 /**
  * Issues and verifies the bearer tokens the frontend holds. The subject is the
- * user id and nothing else — no name, no email, nothing that goes stale or is
- * worth reading off a token someone pasted somewhere.
+ * user id and the only other claim is the account's token version — no name,
+ * no email, nothing that goes stale or is worth reading off a token someone
+ * pasted somewhere.
  */
 @Service
 public class JwtService {
 
     /** HS256 will not accept a shorter key, and neither should we. */
     private static final int MIN_SECRET_BYTES = 32;
+
+    /** The account's token version when the token was issued; see {@code User#revokeTokens}. */
+    private static final String VERSION_CLAIM = "ver";
+
+    /** What a valid token says about who holds it. */
+    public record TokenClaims(Long userId, int version) {
+    }
 
     private final SecretKey key;
     private final JwtProperties props;
@@ -43,10 +51,11 @@ public class JwtService {
         this.props = props;
     }
 
-    public String issue(Long userId) {
+    public String issue(Long userId, int tokenVersion) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(String.valueOf(userId))
+                .claim(VERSION_CLAIM, tokenVersion)
                 .issuer(props.issuer())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusSeconds(props.ttlSeconds())))
@@ -59,11 +68,12 @@ public class JwtService {
     }
 
     /**
-     * The user id inside a valid token, or null for anything expired, forged,
-     * issued by someone else, or simply not a token. Callers treat null as
-     * "not signed in" — there is no case where the reason matters to them.
+     * The claims inside a valid token, or null for anything expired, forged,
+     * issued by someone else, missing its version, or simply not a token.
+     * Callers treat null as "not signed in" — there is no case where the
+     * reason matters to them.
      */
-    public Long readUserId(String token) {
+    public TokenClaims read(String token) {
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(key)
@@ -71,7 +81,11 @@ public class JwtService {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-            return Long.valueOf(claims.getSubject());
+            Integer version = claims.get(VERSION_CLAIM, Integer.class);
+            if (version == null) {
+                return null;
+            }
+            return new TokenClaims(Long.valueOf(claims.getSubject()), version);
         } catch (JwtException | IllegalArgumentException ex) {
             return null;
         }

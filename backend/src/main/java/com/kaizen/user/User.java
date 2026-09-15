@@ -37,6 +37,13 @@ public class User {
     @Column(name = "password_hash", nullable = false, length = 100)
     private String passwordHash;
 
+    /**
+     * Every JWT carries the value this had when it was issued. Bumping it
+     * retires all of them at once — a password change, or signing out everywhere.
+     */
+    @Column(name = "token_version", nullable = false)
+    private int tokenVersion;
+
     // Written by Hibernate rather than left to the column default, so the
     // value does not depend on which database is underneath.
     @CreationTimestamp
@@ -79,6 +86,15 @@ public class User {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public int getTokenVersion() {
+        return tokenVersion;
+    }
+
+    /** Retires every token issued for this account so far. */
+    public void revokeTokens() {
+        tokenVersion++;
     }
 
     public Instant getCreatedAt() {

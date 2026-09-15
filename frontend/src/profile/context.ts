@@ -11,12 +11,18 @@ export interface DeliveryChannels {
 export interface ProfileStore {
   /** The address the account signs in with, read from the session. */
   email: string
-  /** "Keep me signed in", as set on the auth screens. */
+  /** Whether this device keeps the token after the browser closes. */
   keepSignedIn: boolean
   setKeepSignedIn: (keep: boolean) => void
-  /** Checks the fields, saves them through the API, then puts what it stored on the session. */
-  saveAccount: (next: { name: string; email: string }) => Promise<Result>
-  /** Checks the fields, then changes the password through the API. */
+  /**
+   * Checks the fields, saves them through the API, then puts what it stored on
+   * the session. `password` is the current one, needed only when the email changes.
+   */
+  saveAccount: (next: { name: string; email: string; password: string }) => Promise<Result>
+  /**
+   * Checks the fields, then changes the password through the API. Other devices
+   * are signed out; this one carries on with the fresh token the server returns.
+   */
   changePassword: (next: {
     current: string
     password: string

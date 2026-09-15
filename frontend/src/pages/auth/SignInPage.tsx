@@ -6,7 +6,7 @@ import { AuthLayout } from './AuthLayout'
 import styles from './AuthLayout.module.css'
 
 export function SignInPage() {
-  const { signIn } = useSession()
+  const { signIn, notice } = useSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(true)
@@ -17,7 +17,7 @@ export function SignInPage() {
     if (busy) return
     setBusy(true)
     setError(null)
-    const result = await signIn(email, password)
+    const result = await signIn(email, password, remember)
     setBusy(false)
     if (result.ok) navigate('boot')
     else setError(result.reason)
@@ -29,10 +29,10 @@ export function SignInPage() {
       title="Welcome back"
       blurb="Enter your credentials and I will bring the month back up."
       cta="Sign in"
-      error={error}
+      // Until this form has something to report, say why the last session ended, if it ended on its own.
+      error={error ?? notice}
       busy={busy}
       onSubmit={enter}
-      onSocial={() => setError('Apple and Google sign-in are not connected yet.')}
     >
       <div className={styles.fields}>
         <Input

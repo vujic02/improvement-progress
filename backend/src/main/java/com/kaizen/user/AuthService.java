@@ -1,6 +1,8 @@
 package com.kaizen.user;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Duration;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
@@ -11,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.kaizen.common.ApiException;
 import com.kaizen.profile.ProfileService;
+import com.kaizen.security.AttemptLimiter;
 import com.kaizen.security.JwtService;
 import com.kaizen.user.dto.AuthResponse;
 import com.kaizen.user.dto.ChangePasswordRequest;
@@ -21,6 +24,14 @@ import com.kaizen.user.dto.UserResponse;
 
 @Service
 public class AuthService {
+
+    /** Wrong passwords one address may try against one email before login makes it wait. */
+    private static final int LOGIN_FAILURES_ALLOWED = 5;
+    private static final Duration LOGIN_FAILURE_WINDOW = Duration.ofMinutes(15);
+
+    /** Accounts one address may try to create before register makes it wait. */
+    private static final int REGISTRATIONS_ALLOWED = 10;
+    private static final Duration REGISTRATION_WINDOW = Duration.ofHours(1);
 
     private final UserRepository users;
     private final PasswordEncoder encoder;
@@ -34,6 +45,11 @@ public class AuthService {
      */
     private final String missingAccountHash;
 
+    private final AttemptLimiter loginFailures =
+            new AttemptLimiter(LOGIN_FAILURES_ALLOWED, LOGIN_FAILURE_WINDOW, Clock.systemUTC());
+    private final AttemptLimiter registrations =
+            new AttemptLimiter(REGISTRATIONS_ALLOWED, REGISTRATION_WINDOW, Clock.systemUTC());
+
     public AuthService(UserRepository users, PasswordEncoder encoder, JwtService jwt, ProfileService profiles) {
         this.users = users;
         this.encoder = encoder;
@@ -45,9 +61,13 @@ public class AuthService {
     /**
      * Creates the account and, in the same transaction, its profile settings
      * and the eight default reminders — so every later read finds rows there.
+     * Every attempt counts toward the address's allowance, successful or not.
      */
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResponse register(RegisterRequest request, String clientAddress) {
+        refuseWhileLimited(registrations, clientAddress);
+        registrations.record(clientAddress);
+
         if (tooLong(request.password())) {
             throw ApiException.badRequest("That password is too long.");
         }
@@ -67,16 +87,26 @@ public class AuthService {
      * them apart tells an attacker which emails are registered. So would
      * answering a missing account faster, which is why the password is
      * compared either way.
+     *
+     * <p>Failures count per address and email together, so someone guessing
+     * at an account cannot lock its owner out from somewhere else. The
+     * trade-off is that each new address starts with a fresh allowance.
      */
     @Transactional(readOnly = true)
-    public AuthResponse login(LoginRequest request) {
-        Optional<User> user = users.findByEmail(normalise(request.email()));
+    public AuthResponse login(LoginRequest request, String clientAddress) {
+        String email = normalise(request.email());
+        String attemptKey = clientAddress + " " + email;
+        refuseWhileLimited(loginFailures, attemptKey);
+
+        Optional<User> user = users.findByEmail(email);
         boolean matches = passwordMatches(request.password(),
                 user.map(User::getPasswordHash).orElse(missingAccountHash));
 
         if (user.isEmpty() || !matches) {
+            loginFailures.record(attemptKey);
             throw ApiException.unauthorized("That email and password don't match.");
         }
+        loginFailures.reset(attemptKey);
         return token(user.get());
     }
 
@@ -85,13 +115,27 @@ public class AuthService {
         return UserResponse.of(require(userId));
     }
 
+    /**
+     * A new email needs the current password: a stolen token alone must not
+     * be enough to move the account to an address someone else controls. The
+     * password is checked before the address, so this cannot be used to find
+     * out which emails are registered without it.
+     */
     @Transactional
     public UserResponse updateAccount(Long userId, UpdateAccountRequest request) {
         User user = require(userId);
         String email = normalise(request.email());
 
-        if (!email.equals(user.getEmail()) && users.existsByEmail(email)) {
-            throw ApiException.conflict("That email is already registered.");
+        if (!email.equals(user.getEmail())) {
+            if (request.password() == null || request.password().isEmpty()) {
+                throw ApiException.badRequest("Enter your current password to change your email.");
+            }
+            if (!passwordMatches(request.password(), user.getPasswordHash())) {
+                throw ApiException.badRequest("That is not your current password.");
+            }
+            if (users.existsByEmail(email)) {
+                throw ApiException.conflict("That email is already registered.");
+            }
         }
 
         user.setName(request.name().trim());
@@ -100,11 +144,12 @@ public class AuthService {
     }
 
     /**
-     * Unlike the client-side stand-in this replaces, a success here means the
-     * hash actually changed.
+     * A success means the hash actually changed. It also retires every token
+     * issued so far, so a session on another device ends with the old
+     * password; the caller gets a fresh token to carry on with.
      */
     @Transactional
-    public void changePassword(Long userId, ChangePasswordRequest request) {
+    public AuthResponse changePassword(Long userId, ChangePasswordRequest request) {
         User user = require(userId);
 
         if (!passwordMatches(request.current(), user.getPasswordHash())) {
@@ -124,6 +169,14 @@ public class AuthService {
         }
 
         user.setPasswordHash(encoder.encode(request.password()));
+        user.revokeTokens();
+        return token(user);
+    }
+
+    /** Retires every token issued for the account, the caller's own included. */
+    @Transactional
+    public void signOutEverywhere(Long userId) {
+        require(userId).revokeTokens();
     }
 
     private User require(Long userId) {
@@ -131,7 +184,17 @@ public class AuthService {
     }
 
     private AuthResponse token(User user) {
-        return new AuthResponse(jwt.issue(user.getId()), jwt.ttlSeconds(), UserResponse.of(user));
+        return new AuthResponse(jwt.issue(user.getId(), user.getTokenVersion()), jwt.ttlSeconds(),
+                UserResponse.of(user));
+    }
+
+    private static void refuseWhileLimited(AttemptLimiter limiter, String key) {
+        long seconds = limiter.secondsUntilAllowed(key);
+        if (seconds > 0) {
+            long minutes = (seconds + 59) / 60;
+            throw ApiException.tooManyRequests(
+                    "Too many attempts. Try again in " + minutes + (minutes == 1 ? " minute." : " minutes."));
+        }
     }
 
     /**

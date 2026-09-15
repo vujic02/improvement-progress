@@ -1,22 +1,34 @@
 /**
- * The one place the frontend talks to the Spring API. Providers call `get` and
- * `post`; nothing else uses fetch directly.
+ * The one place the frontend talks to the Spring API. Providers call `get`,
+ * `post` and `patch`; nothing else uses fetch directly.
  */
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
 const TOKEN_KEY = 'kaizen.token'
 
-let token: string | null = localStorage.getItem(TOKEN_KEY)
+// "Keep me signed in" puts the token in localStorage, which outlives the
+// browser; otherwise it goes in sessionStorage, which ends with the tab.
+let token: string | null = localStorage.getItem(TOKEN_KEY) ?? sessionStorage.getItem(TOKEN_KEY)
 
 export function getToken(): string | null {
   return token
 }
 
-/** Keeps the JWT for later requests; `null` forgets it (sign out, expired). */
-export function setToken(next: string | null) {
+/** Whether the token held now survives closing the browser. */
+export function isTokenRemembered(): boolean {
+  return localStorage.getItem(TOKEN_KEY) !== null
+}
+
+/**
+ * Keeps the JWT for later requests; `null` forgets it (sign out, expired).
+ * `remember` picks localStorage over sessionStorage, and defaults to wherever
+ * the current token lives, so a replacement token stays in the same place.
+ */
+export function setToken(next: string | null, remember = isTokenRemembered()) {
   token = next
-  if (next) localStorage.setItem(TOKEN_KEY, next)
-  else localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(TOKEN_KEY)
+  sessionStorage.removeItem(TOKEN_KEY)
+  if (next) (remember ? localStorage : sessionStorage).setItem(TOKEN_KEY, next)
 }
 
 /**

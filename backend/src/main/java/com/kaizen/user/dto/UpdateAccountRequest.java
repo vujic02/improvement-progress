@@ -14,5 +14,9 @@ public record UpdateAccountRequest(
         @NotBlank(message = "Enter your email.")
         @Email(message = "That email doesn't look right.")
         @Size(max = 190, message = "That email is too long.")
-        String email) {
+        String email,
+
+        // The current password. Needed only when the email changes, so it is
+        // checked in AuthService rather than annotated here.
+        String password) {
 }

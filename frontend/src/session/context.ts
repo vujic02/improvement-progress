@@ -9,6 +9,13 @@ export interface User {
   email: string
 }
 
+/** Mirrors the API's `AuthResponse` record. `expiresIn` is seconds. */
+export interface AuthResponse {
+  token: string
+  expiresIn: number
+  user: User
+}
+
 /**
  * `checking` while a token left by an earlier visit is being confirmed with the
  * API, `in` once the API has accepted a token, `out` otherwise.
@@ -21,11 +28,21 @@ export interface Session {
   user: User | null
   /** The account's name, or the default greeting name when there is no account. */
   userName: string
-  /** Checks the credentials against the API and keeps the token on success. */
-  signIn: (email: string, password: string) => Promise<Result>
+  /**
+   * Why the last session ended when the user did not end it — expired, or
+   * retired from another device — for the sign-in screen. Null otherwise.
+   */
+  notice: string | null
+  /**
+   * Checks the credentials against the API and keeps the token on success.
+   * `remember` keeps it after the browser closes.
+   */
+  signIn: (email: string, password: string, remember: boolean) => Promise<Result>
   /** Creates the account and signs straight in with the token it returns. */
-  register: (name: string, email: string, password: string) => Promise<Result>
+  register: (name: string, email: string, password: string, remember: boolean) => Promise<Result>
   signOut: () => void
+  /** Retires every token for the account on the server, then signs out here. */
+  signOutEverywhere: () => Promise<Result>
   /** Patches the signed-in account in place — the profile page writes through this. */
   updateUser: (patch: Partial<Pick<User, 'name' | 'email'>>) => void
 }

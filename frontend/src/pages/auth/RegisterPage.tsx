@@ -19,7 +19,7 @@ export function RegisterPage() {
     if (busy) return
     setBusy(true)
     setError(null)
-    const result = await register(name, email, password)
+    const result = await register(name, email, password, keepSignedIn)
     setBusy(false)
     if (result.ok) navigate('boot')
     else setError(result.reason)
@@ -34,7 +34,6 @@ export function RegisterPage() {
       error={error}
       busy={busy}
       onSubmit={enter}
-      onSocial={() => setError('Apple and Google sign-in are not connected yet.')}
     >
       <div className={styles.fields}>
         <Input

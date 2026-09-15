@@ -73,20 +73,33 @@ function Screen() {
   }
 }
 
+/**
+ * Everything the signed-in account owns. Keyed on the account, so signing out
+ * or into someone else starts from a clean slate instead of showing the last
+ * user's task types, goals and settings.
+ */
+function AccountScope() {
+  const { user } = useSession()
+
+  return (
+    <TaskTypesProvider key={user?.id ?? 'signed-out'}>
+      <PursuitsProvider context={SavingsContext}>
+        <PursuitsProvider context={GrowthContext}>
+          <PursuitsProvider context={DreamsContext}>
+            <ProfileProvider>
+              <Screen />
+            </ProfileProvider>
+          </PursuitsProvider>
+        </PursuitsProvider>
+      </PursuitsProvider>
+    </TaskTypesProvider>
+  )
+}
+
 export default function App() {
   return (
     <SessionProvider>
-      <TaskTypesProvider>
-        <PursuitsProvider context={SavingsContext}>
-          <PursuitsProvider context={GrowthContext}>
-            <PursuitsProvider context={DreamsContext}>
-              <ProfileProvider>
-                <Screen />
-              </ProfileProvider>
-            </PursuitsProvider>
-          </PursuitsProvider>
-        </PursuitsProvider>
-      </TaskTypesProvider>
+      <AccountScope />
     </SessionProvider>
   )
 }

@@ -112,24 +112,6 @@
   color: var(--accent-pink);
 }
 
-.divider {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.rule {
-  flex: 1;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.social {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
 .foot {
   display: flex;
   justify-content: center;
