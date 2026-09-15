@@ -25,3 +25,6 @@ dist-ssr
 
 # Maven
 target/
+
+# Machine-specific Spring overrides, such as a local database password
+application-local.yml

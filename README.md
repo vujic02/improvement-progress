@@ -20,6 +20,11 @@ cd backend
 mvn spring-boot:run
 ```
 
+`mvn spring-boot:run` starts with the `dev` profile (`application-dev.yml`),
+the only place a development JWT secret exists. Anything else — `java -jar`, or
+an IDE run without `SPRING_PROFILES_ACTIVE=dev` — must be given `JWT_SECRET` or
+it refuses to start.
+
 It listens on **http://localhost:8080**. Defaults assume MySQL on
 `localhost:3306` with `root` / `root`; override with environment variables:
 
@@ -29,9 +34,20 @@ It listens on **http://localhost:8080**. Defaults assume MySQL on
 | `DB_USER` | `root` |
 | `DB_PASSWORD` | `root` |
 | `SERVER_PORT` | `8080` |
-| `JWT_SECRET` | a development value — **override it anywhere real**, minimum 32 bytes |
+| `JWT_SECRET` | none — **required** outside the `dev` profile, minimum 32 bytes |
 | `JWT_TTL_SECONDS` | `604800` (seven days) |
 | `CORS_ORIGINS` | `http://localhost:5173,http://localhost:5174,http://localhost:5178` |
+
+For a value that belongs to your machine only, such as your MySQL password,
+create `backend/application-local.yml` instead of exporting a variable. Git
+ignores it, and it is read when the API starts from `backend/`, as
+`mvn spring-boot:run` does:
+
+```yaml
+spring:
+  datasource:
+    password: your-local-password
+```
 
 ## Running the frontend
 
@@ -57,11 +73,21 @@ login needs `Authorization: Bearer <token>`.
 | `POST` | `/api/auth/register` | `{ name, email, password }` | `{ token, expiresIn, user }` |
 | `POST` | `/api/auth/login` | `{ email, password }` | `{ token, expiresIn, user }` |
 | `GET` | `/api/auth/me` | — | `{ id, name, email }` |
-| `PATCH` | `/api/account` | `{ name, email }` | `{ id, name, email }` |
-| `POST` | `/api/account/password` | `{ current, password, confirm }` | `204` |
+| `PATCH` | `/api/account` | `{ name, email, password? }` — `password` required when the email changes | `{ id, name, email }` |
+| `POST` | `/api/account/password` | `{ current, password, confirm }` | `{ token, expiresIn, user }` |
+| `POST` | `/api/account/sign-out-everywhere` | — | `204` |
 
-Passwords are BCrypt hashes and never leave the server in any form. The token
-carries the user id and nothing else.
+Passwords are BCrypt hashes of at most 72 bytes and never leave the server in
+any form. The token carries the user id and the account's token version.
+Changing the password or signing out everywhere bumps that version, which
+retires every token issued before; the password change hands the caller a
+fresh one.
+
+Login allows 5 wrong passwords per client address and email in 15 minutes,
+register 10 attempts per address in an hour; past that both answer `429`. The
+counts live in memory, so they are per instance and reset on restart. Behind a
+reverse proxy the client address is the proxy's unless forwarded headers are
+trusted (`server.forward-headers-strategy`).
 
 ### Task types
 
@@ -114,7 +140,10 @@ moment the account is created.
 
 ## What is not wired yet
 
-The frontend still holds everything in `useState` — `TaskTypesProvider`,
-`PursuitsProvider`, `ProfileProvider` and `SessionProvider` have not been
-pointed at any of the above. The API is here and works; connecting the two is
-the next job.
+Sign-in is wired: `SessionProvider` and the account half of `ProfileProvider`
+(details, password, sign out everywhere) talk to the API. `TaskTypesProvider`,
+`PursuitsProvider` and the rest of `ProfileProvider` (reminders, channels) still
+hold everything in `useState`, reset whenever a different account signs in.
+
+Not built: password reset and email verification (both need outgoing email),
+and Apple/Google sign-in, whose buttons were removed until OAuth exists.

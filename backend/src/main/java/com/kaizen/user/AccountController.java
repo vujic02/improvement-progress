@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.kaizen.user.dto.AuthResponse;
 import com.kaizen.user.dto.ChangePasswordRequest;
 import com.kaizen.user.dto.UpdateAccountRequest;
 import com.kaizen.user.dto.UserResponse;
@@ -31,10 +32,17 @@ public class AccountController {
         return service.updateAccount(userId, request);
     }
 
+    /** Retires every token issued so far and hands the caller a fresh one to carry on with. */
     @PostMapping("/password")
-    public ResponseEntity<Void> changePassword(@AuthenticationPrincipal Long userId,
+    public AuthResponse changePassword(@AuthenticationPrincipal Long userId,
             @Valid @RequestBody ChangePasswordRequest request) {
-        service.changePassword(userId, request);
+        return service.changePassword(userId, request);
+    }
+
+    /** Retires every token issued for the account, the caller's own included. */
+    @PostMapping("/sign-out-everywhere")
+    public ResponseEntity<Void> signOutEverywhere(@AuthenticationPrincipal Long userId) {
+        service.signOutEverywhere(userId);
         return ResponseEntity.noContent().build();
     }
 }

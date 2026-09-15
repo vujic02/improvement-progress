@@ -20,6 +20,12 @@
   <properties>
     <java.version>21</java.version>
     <jjwt.version>0.12.6</jjwt.version>
+    <!--
+      `mvn spring-boot:run` is the laptop, so it runs with application-dev.yml.
+      A packaged jar ignores this and must be given JWT_SECRET. Override with
+      -Dspring-boot.run.profiles=... when a different profile is wanted.
+    -->
+    <spring-boot.run.profiles>dev</spring-boot.run.profiles>
   </properties>
 
   <dependencies>

@@ -18,6 +18,9 @@ public class User {
     /** Shortest password the register and change-password forms accept. */
     public static final int PASSWORD_MIN = 8;
 
+    /** BCrypt reads no further than this, so no password may be longer. Counted in UTF-8 bytes. */
+    public static final int PASSWORD_MAX_BYTES = 72;
+
     public static final int NAME_MAX = 80;
 
     @Id
@@ -33,6 +36,13 @@ public class User {
     /** A BCrypt hash. The plaintext never leaves the request thread. */
     @Column(name = "password_hash", nullable = false, length = 100)
     private String passwordHash;
+
+    /**
+     * Every JWT carries the value this had when it was issued. Bumping it
+     * retires all of them at once — a password change, or signing out everywhere.
+     */
+    @Column(name = "token_version", nullable = false)
+    private int tokenVersion;
 
     // Written by Hibernate rather than left to the column default, so the
     // value does not depend on which database is underneath.
@@ -76,6 +86,15 @@ public class User {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public int getTokenVersion() {
+        return tokenVersion;
+    }
+
+    /** Retires every token issued for this account so far. */
+    public void revokeTokens() {
+        tokenVersion++;
     }
 
     public Instant getCreatedAt() {

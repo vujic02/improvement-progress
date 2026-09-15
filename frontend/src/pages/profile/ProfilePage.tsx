@@ -45,39 +45,73 @@ function initials(name: string): string {
 type Note = { tone: 'ok' | 'bad'; text: string } | null
 
 function AccountTab() {
-  const { userName, signOut } = useSession()
+  const { userName, signOut, signOutEverywhere } = useSession()
   const { email, keepSignedIn, setKeepSignedIn, saveAccount, changePassword } = useProfile()
 
-  const [name, setName] = useState(userName)
-  const [address, setAddress] = useState(email)
+  // A field nobody has typed in shows what the session holds, so after a save
+  // the form shows what the server stored (it lowercases emails), not the draft.
+  const [draftName, setDraftName] = useState<string | null>(null)
+  const [draftAddress, setDraftAddress] = useState<string | null>(null)
   const [detailsNote, setDetailsNote] = useState<Note>(null)
+  const [savingDetails, setSavingDetails] = useState(false)
+  // Asked for only when the email changes; the server refuses that change without it.
+  const [accountPassword, setAccountPassword] = useState('')
 
   const [current, setCurrent] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [passwordNote, setPasswordNote] = useState<Note>(null)
+  const [savingPassword, setSavingPassword] = useState(false)
 
+  const [sessionsError, setSessionsError] = useState<string | null>(null)
+  const [endingSessions, setEndingSessions] = useState(false)
+
+  const name = draftName ?? userName
+  const address = draftAddress ?? email
   const dirty = name !== userName || address !== email
+  // Stored emails are lowercase, so a change of case alone is not a new address.
+  const emailChanged = address.trim().toLowerCase() !== email
 
-  const submitDetails = (event: FormEvent<HTMLFormElement>) => {
+  const submitDetails = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const result = saveAccount({ name, email: address })
-    setDetailsNote(
-      result.ok ? { tone: 'ok', text: 'Details saved.' } : { tone: 'bad', text: result.reason },
-    )
+    if (savingDetails) return
+    setSavingDetails(true)
+    const result = await saveAccount({ name, email: address, password: accountPassword })
+    setSavingDetails(false)
+    if (result.ok) {
+      setDraftName(null)
+      setDraftAddress(null)
+      setAccountPassword('')
+      setDetailsNote({ tone: 'ok', text: 'Details saved.' })
+    } else {
+      setDetailsNote({ tone: 'bad', text: result.reason })
+    }
   }
 
-  const submitPassword = (event: FormEvent<HTMLFormElement>) => {
+  const submitPassword = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const result = changePassword({ current, password, confirm })
+    if (savingPassword) return
+    setSavingPassword(true)
+    const result = await changePassword({ current, password, confirm })
+    setSavingPassword(false)
     if (result.ok) {
       setCurrent('')
       setPassword('')
       setConfirm('')
-      setPasswordNote({ tone: 'ok', text: 'Password updated.' })
+      setPasswordNote({ tone: 'ok', text: 'Password updated. Other devices have been signed out.' })
     } else {
       setPasswordNote({ tone: 'bad', text: result.reason })
     }
+  }
+
+  const leaveEverywhere = async () => {
+    if (endingSessions) return
+    setEndingSessions(true)
+    setSessionsError(null)
+    const result = await signOutEverywhere()
+    setEndingSessions(false)
+    if (result.ok) navigate('signin')
+    else setSessionsError(result.reason)
   }
 
   return (
@@ -95,7 +129,7 @@ function AccountTab() {
             placeholder="Your name"
             value={name}
             onChange={(e) => {
-              setName(e.target.value)
+              setDraftName(e.target.value)
               setDetailsNote(null)
             }}
           />
@@ -107,10 +141,23 @@ function AccountTab() {
             placeholder="Your email address"
             value={address}
             onChange={(e) => {
-              setAddress(e.target.value)
+              setDraftAddress(e.target.value)
               setDetailsNote(null)
             }}
           />
+          {emailChanged ? (
+            <Input
+              label="Current password"
+              type="password"
+              autoComplete="current-password"
+              placeholder="Needed to change your email"
+              value={accountPassword}
+              onChange={(e) => {
+                setAccountPassword(e.target.value)
+                setDetailsNote(null)
+              }}
+            />
+          ) : null}
 
           {detailsNote ? (
             <span
@@ -122,7 +169,7 @@ function AccountTab() {
           ) : null}
 
           <div className={styles.actions}>
-            <Button type="submit" size="md" disabled={!dirty}>
+            <Button type="submit" size="md" disabled={!dirty || savingDetails}>
               Save changes
             </Button>
             {dirty ? (
@@ -131,8 +178,9 @@ function AccountTab() {
                 variant="subtle"
                 size="md"
                 onClick={() => {
-                  setName(userName)
-                  setAddress(email)
+                  setDraftName(null)
+                  setDraftAddress(null)
+                  setAccountPassword('')
                   setDetailsNote(null)
                 }}
               >
@@ -194,7 +242,7 @@ function AccountTab() {
             ) : null}
 
             <div className={styles.actions}>
-              <Button type="submit" size="md">
+              <Button type="submit" size="md" disabled={savingPassword}>
                 Update password
               </Button>
             </div>
@@ -202,13 +250,23 @@ function AccountTab() {
         </GlassCard>
 
         <GlassCard>
-          <SectionHeading title="Sign-in" subtitle="How this browser treats your session." />
+          <SectionHeading
+            title="Sign-in"
+            subtitle="How this device keeps you signed in. Signing out everywhere ends every session, this one too."
+          />
           <div className={styles.form}>
             <Switch
               checked={keepSignedIn}
               onChange={setKeepSignedIn}
               label="Keep me signed in on this device"
             />
+
+            {sessionsError ? (
+              <span className={styles.error} role="alert">
+                {sessionsError}
+              </span>
+            ) : null}
+
             <div className={styles.actions}>
               <Button
                 type="button"
@@ -221,6 +279,15 @@ function AccountTab() {
               >
                 <Icon name="key" size={16} />
                 Sign out
+              </Button>
+              <Button
+                type="button"
+                variant="subtle"
+                size="md"
+                disabled={endingSessions}
+                onClick={leaveEverywhere}
+              >
+                Sign out everywhere
               </Button>
             </div>
           </div>

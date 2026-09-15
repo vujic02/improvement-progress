@@ -2,6 +2,12 @@ spring:
   application:
     name: kaizen-api
 
+  # Machine-specific values (your local database password, say) belong in
+  # backend/application-local.yml, which git ignores. Whatever it sets wins over
+  # this file; environment variables cover anything it leaves out.
+  config:
+    import: optional:file:./application-local.yml
+
   datasource:
     # createDatabaseIfNotExist saves a manual CREATE DATABASE on a fresh machine.
     url: ${DB_URL:jdbc:mysql://localhost:3306/kaizen?createDatabaseIfNotExist=true&serverTimezone=UTC}
@@ -36,8 +42,10 @@ server:
 
 kaizen:
   jwt:
-    # HS256 needs >= 32 bytes. Override in every environment that is not a laptop.
-    secret: ${JWT_SECRET:dev-only-secret-change-me-0123456789abcdef}
+    # HS256 needs >= 32 bytes. No default on purpose: a server started without
+    # JWT_SECRET refuses to boot rather than sign tokens with a value anyone can
+    # read in this repo. application-dev.yml supplies one for laptops.
+    secret: ${JWT_SECRET:}
     # Seven days, in seconds.
     ttl-seconds: ${JWT_TTL_SECONDS:604800}
     issuer: kaizen

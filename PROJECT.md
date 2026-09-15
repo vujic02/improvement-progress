@@ -222,16 +222,23 @@ styles would need working through first.
 **Notifications**.
 
 **Account** holds exactly what the auth screens ask for and nothing more —
-name, email, password — plus the "keep me signed in" preference and a sign-out.
-The name is **not** stored on the profile: it lives in `SessionProvider`, and
-`saveAccount` writes through `setUserName` so the Jarvis greeting follows it.
-Email lives in `ProfileProvider`.
+name, email, password — plus the "keep me signed in" preference, a sign-out
+and a sign-out-everywhere. Name and email live on the session's `user`:
+`saveAccount` sends them to `PATCH /api/account` and writes what the server
+stored back through `updateUser`, so the Jarvis greeting follows the name.
+Changing the email needs the current password; the form shows that field only
+once the address actually differs.
 
-The password form **validates and reports back, it does not store anything**.
-There is no backend to check the current password against, so "Password
-updated." means the form was well-formed, not that anything changed. Rules:
-at least `PASSWORD_MIN` characters, different from the current one, and typed
-the same twice.
+The password form checks locally first — at least `PASSWORD_MIN` characters,
+different from the current one, typed the same twice — then
+`POST /api/account/password` checks again and changes the hash. That retires
+every token issued before, so other devices are signed out; this one carries
+on with the fresh token the response returns.
+
+"Keep me signed in" belongs to the device, not the account. On, the token is
+kept in `localStorage`; off, in `sessionStorage`, which ends with the tab and
+is not shared with other tabs. The server's `keepSignedIn` profile field is not
+used by the frontend.
 
 **Notifications** is a list of individual reminders, each with its own switch.
 
@@ -258,13 +265,16 @@ reminders actually get delivered in-app.
 
 ## Known gaps
 
-- **The frontend is not wired to the backend.** `backend/` persists all of it —
-  accounts, custom types, pursuits, steps, reminder settings — but the app has
-  not been pointed at it yet. Custom types still live in `TaskTypesProvider`
-  state and goals in `PursuitsProvider`, and both still vanish on reload.
-  Those providers plus `SessionProvider` are the only things that need to
-  change: every consumer reads through `useTaskTypes()`, `useSavings()`,
-  `useGrowth()` or `useDreams()`.
+- **Most of the frontend is not wired to the backend yet.** Sign-in and the
+  account half of the profile are. Custom types still live in
+  `TaskTypesProvider` state, goals in `PursuitsProvider`, reminders and
+  channels in `ProfileProvider`; all of them vanish on reload and reset when
+  another account signs in. Every consumer reads through `useTaskTypes()`,
+  `useSavings()`, `useGrowth()`, `useDreams()` or `useProfile()`, so only the
+  providers need to change.
+- **No password reset or email verification.** Both need outgoing email.
+  Apple and Google sign-in were removed from the auth screens until OAuth
+  exists.
 - **Two lists are mirrored across the split** and have to stay in step:
   `DEFAULT_TASK_TYPES`' labels and `CUSTOM_COLORS` (`TaskTypeDefaults` on the
   server), and `DEFAULT_REMINDERS`' ids (`ReminderDefaults`). The server needs
