@@ -38,6 +38,17 @@ It listens on **http://localhost:8080**. Defaults assume MySQL on
 | `JWT_TTL_SECONDS` | `604800` (seven days) |
 | `CORS_ORIGINS` | `http://localhost:5173,http://localhost:5174,http://localhost:5178` |
 
+For a value that belongs to your machine only, such as your MySQL password,
+create `backend/application-local.yml` instead of exporting a variable. Git
+ignores it, and it is read when the API starts from `backend/`, as
+`mvn spring-boot:run` does:
+
+```yaml
+spring:
+  datasource:
+    password: your-local-password
+```
+
 ## Running the frontend
 
 ```bash

@@ -2,11 +2,17 @@ spring:
   application:
     name: kaizen-api
 
+  # Machine-specific values (your local database password, say) belong in
+  # backend/application-local.yml, which git ignores. Whatever it sets wins over
+  # this file; environment variables cover anything it leaves out.
+  config:
+    import: optional:file:./application-local.yml
+
   datasource:
     # createDatabaseIfNotExist saves a manual CREATE DATABASE on a fresh machine.
     url: ${DB_URL:jdbc:mysql://localhost:3306/kaizen?createDatabaseIfNotExist=true&serverTimezone=UTC}
     username: ${DB_USER:root}
-    password: ${DB_PASSWORD:nikola}
+    password: ${DB_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   # Flyway owns the schema. Hibernate only checks the mapping against it.
