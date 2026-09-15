@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ApiError, get, getToken, post, setToken } from '../lib/api'
-import { DEFAULT_NAME, SessionContext, type Result } from './context'
-
-/** Mirrors the API's `UserResponse` record. */
-interface User {
-  id: number
-  name: string
-  email: string
-}
+import { DEFAULT_NAME, SessionContext, type Result, type SessionStatus, type User } from './context'
 
 /** Mirrors the API's `AuthResponse` record. `expiresIn` is seconds. */
 interface AuthResponse {
@@ -21,26 +14,33 @@ function failure(error: unknown): Result {
 }
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [userName, setUserName] = useState(DEFAULT_NAME)
-  const [signedIn, setSignedIn] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
+  // With no stored token there is nothing to confirm, so skip straight to signed out.
+  const [status, setStatus] = useState<SessionStatus>(() => (getToken() ? 'checking' : 'out'))
 
   const start = useCallback((res: AuthResponse) => {
     setToken(res.token)
-    setUserName(res.user.name)
-    setSignedIn(true)
+    setUser(res.user)
+    setStatus('in')
   }, [])
 
   // A token left by an earlier visit: ask the API whose it is. A 401 means it
-  // expired or the server's secret changed, so forget it.
+  // expired or the server's secret changed, so forget it. Any other failure
+  // (server down) signs out for now but keeps the token for the next load.
   useEffect(() => {
-    if (!getToken()) return
+    const token = getToken()
+    if (!token) return
     get<User>('/api/auth/me')
-      .then((user) => {
-        setUserName(user.name)
-        setSignedIn(true)
+      .then((me) => {
+        // Signed out, or into another account, while this was in flight.
+        if (getToken() !== token) return
+        setUser(me)
+        setStatus('in')
       })
       .catch((error) => {
+        if (getToken() !== token) return
         if (error instanceof ApiError && error.status === 401) setToken(null)
+        setStatus('out')
       })
   }, [])
 
@@ -70,16 +70,25 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     setToken(null)
-    setSignedIn(false)
+    setUser(null)
+    setStatus('out')
   }, [])
 
-  const rename = useCallback((name: string) => {
-    if (name.trim()) setUserName(name.trim())
+  const updateUser = useCallback((patch: Partial<Pick<User, 'name' | 'email'>>) => {
+    setUser((prev) => (prev ? { ...prev, ...patch } : prev))
   }, [])
 
   const value = useMemo(
-    () => ({ userName, signedIn, signIn, register, signOut, setUserName: rename }),
-    [userName, signedIn, signIn, register, signOut, rename],
+    () => ({
+      status,
+      user,
+      userName: user?.name ?? DEFAULT_NAME,
+      signIn,
+      register,
+      signOut,
+      updateUser,
+    }),
+    [status, user, signIn, register, signOut, updateUser],
   )
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>

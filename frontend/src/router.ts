@@ -34,9 +34,15 @@ function readRoute(): Route {
   return (ROUTES as readonly string[]).includes(hash) ? (hash as Route) : 'welcome'
 }
 
-/** Jump to a route. Pushes history so the back button works. */
-export function navigate(route: Route) {
-  if (window.location.hash !== PATHS[route]) window.location.hash = PATHS[route]
+/**
+ * Jump to a route. Pushes history so the back button works; `replace` swaps
+ * the current entry instead, for redirects the back button should not land on.
+ */
+export function navigate(route: Route, { replace = false }: { replace?: boolean } = {}) {
+  const path = PATHS[route]
+  if (window.location.hash === path) return
+  if (replace) window.location.replace(path)
+  else window.location.hash = path
 }
 
 export function hrefFor(route: Route): string {

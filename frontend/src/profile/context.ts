@@ -9,12 +9,12 @@ export interface DeliveryChannels {
 }
 
 export interface ProfileStore {
-  /** The address the account signs in with. */
+  /** The address the account signs in with, read from the session. */
   email: string
   /** "Keep me signed in", as set on the auth screens. */
   keepSignedIn: boolean
   setKeepSignedIn: (keep: boolean) => void
-  /** Writes the name through to the session and the email to this store. */
+  /** Writes the name and email through to the session. */
   saveAccount: (next: { name: string; email: string }) => Result
   /** No backend yet — this only validates and reports back. */
   changePassword: (next: {

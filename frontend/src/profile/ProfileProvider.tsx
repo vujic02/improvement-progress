@@ -3,9 +3,6 @@ import { DEFAULT_REMINDERS, type Reminder } from '../data/reminders'
 import { useSession } from '../session/context'
 import { ProfileContext, type DeliveryChannels, type Result } from './context'
 
-/** Placeholder address until the auth screens post to something real. */
-export const DEFAULT_EMAIL = 'nikola@kaizen.app'
-
 /** Shortest password the register form will accept. */
 export const PASSWORD_MIN = 8
 
@@ -17,9 +14,9 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
  * form validates and reports back, it does not store what you typed.
  */
 export function ProfileProvider({ children }: { children: ReactNode }) {
-  const { setUserName } = useSession()
+  const { user, updateUser } = useSession()
+  const email = user?.email ?? ''
 
-  const [email, setEmail] = useState(DEFAULT_EMAIL)
   const [keepSignedIn, setKeepSignedIn] = useState(true)
   const [reminders, setReminders] = useState<Reminder[]>(DEFAULT_REMINDERS)
   const [paused, setPaused] = useState(false)
@@ -32,11 +29,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       if (!trimmedName) return { ok: false, reason: 'Your name cannot be empty.' }
       if (!EMAIL_RE.test(trimmedEmail)) return { ok: false, reason: "That email doesn't look right." }
 
-      setUserName(trimmedName)
-      setEmail(trimmedEmail)
+      updateUser({ name: trimmedName, email: trimmedEmail })
       return { ok: true }
     },
-    [setUserName],
+    [updateUser],
   )
 
   const changePassword = useCallback(

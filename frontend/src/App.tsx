@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { DreamsContext } from './dreams/context'
 import { GrowthContext } from './growth/context'
 import { RegisterPage } from './pages/auth/RegisterPage'
@@ -11,13 +12,40 @@ import { TaskTypesPage } from './pages/taskTypes/TaskTypesPage'
 import { WelcomePage } from './pages/welcome/WelcomePage'
 import { ProfileProvider } from './profile/ProfileProvider'
 import { PursuitsProvider } from './pursuits/PursuitsProvider'
-import { useRoute } from './router'
+import { navigate, useRoute, type Route } from './router'
 import { SavingsContext } from './savings/context'
+import { useSession, type SessionStatus } from './session/context'
 import { SessionProvider } from './session/SessionProvider'
 import { TaskTypesProvider } from './taskTypes/TaskTypesProvider'
 
+/** Routes open without an account. Every other route needs a signed-in session. */
+const PUBLIC_ROUTES: readonly Route[] = ['welcome', 'signin', 'register']
+
+/**
+ * Where this session should be sent instead of `route`, or null to stay. A
+ * signed-in visitor on an auth screen goes to the boot greeting — the same
+ * place the sign-in and register forms send them on success.
+ */
+function redirectFor(route: Route, status: SessionStatus): Route | null {
+  if (status === 'checking') return null
+  const open = PUBLIC_ROUTES.includes(route)
+  if (status === 'out' && !open) return 'signin'
+  if (status === 'in' && open) return 'boot'
+  return null
+}
+
 function Screen() {
   const route = useRoute()
+  const { status } = useSession()
+  const redirect = redirectFor(route, status)
+
+  useEffect(() => {
+    if (redirect) navigate(redirect, { replace: true })
+  }, [redirect])
+
+  // Nothing renders while a stored token is being confirmed, or on a route
+  // that is about to be left — so a protected page never flashes.
+  if (status === 'checking' || redirect) return null
 
   switch (route) {
     case 'signin':
