@@ -1,0 +1,6 @@
+# Laptop settings. `mvn spring-boot:run` switches this profile on (see
+# spring-boot.run.profiles in pom.xml); a packaged jar never does, so nothing
+# here can reach a real server by accident.
+kaizen:
+  jwt:
+    secret: ${JWT_SECRET:dev-only-secret-change-me-0123456789abcdef}

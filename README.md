@@ -20,6 +20,11 @@ cd backend
 mvn spring-boot:run
 ```
 
+`mvn spring-boot:run` starts with the `dev` profile (`application-dev.yml`),
+the only place a development JWT secret exists. Anything else — `java -jar`, or
+an IDE run without `SPRING_PROFILES_ACTIVE=dev` — must be given `JWT_SECRET` or
+it refuses to start.
+
 It listens on **http://localhost:8080**. Defaults assume MySQL on
 `localhost:3306` with `root` / `root`; override with environment variables:
 
@@ -29,7 +34,7 @@ It listens on **http://localhost:8080**. Defaults assume MySQL on
 | `DB_USER` | `root` |
 | `DB_PASSWORD` | `root` |
 | `SERVER_PORT` | `8080` |
-| `JWT_SECRET` | a development value — **override it anywhere real**, minimum 32 bytes |
+| `JWT_SECRET` | none — **required** outside the `dev` profile, minimum 32 bytes |
 | `JWT_TTL_SECONDS` | `604800` (seven days) |
 | `CORS_ORIGINS` | `http://localhost:5173,http://localhost:5174,http://localhost:5178` |
 

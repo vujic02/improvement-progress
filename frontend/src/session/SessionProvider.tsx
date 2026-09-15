@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { ApiError, get, getToken, post, setToken } from '../lib/api'
+import { get, getToken, post, setToken, setUnauthorizedHandler } from '../lib/api'
 import { DEFAULT_NAME, SessionContext, type Result, type SessionStatus, type User } from './context'
 
 /** Mirrors the API's `AuthResponse` record. `expiresIn` is seconds. */
@@ -24,9 +24,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setStatus('in')
   }, [])
 
-  // A token left by an earlier visit: ask the API whose it is. A 401 means it
-  // expired or the server's secret changed, so forget it. Any other failure
-  // (server down) signs out for now but keeps the token for the next load.
+  // A token left by an earlier visit: ask the API whose it is. A 401 (expired,
+  // or the server's secret changed) has already signed out through the
+  // unauthorized handler. Any other failure (server down) signs out for now
+  // but keeps the token for the next load.
   useEffect(() => {
     const token = getToken()
     if (!token) return
@@ -37,10 +38,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setUser(me)
         setStatus('in')
       })
-      .catch((error) => {
-        if (getToken() !== token) return
-        if (error instanceof ApiError && error.status === 401) setToken(null)
-        setStatus('out')
+      .catch(() => {
+        if (getToken() === token) setStatus('out')
       })
   }, [])
 
@@ -73,6 +72,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setUser(null)
     setStatus('out')
   }, [])
+
+  // Any request whose token the API rejects (expired, account gone) ends the
+  // session; the route guard in App then takes the user to sign-in.
+  useEffect(() => {
+    setUnauthorizedHandler(signOut)
+    return () => setUnauthorizedHandler(null)
+  }, [signOut])
 
   const updateUser = useCallback((patch: Partial<Pick<User, 'name' | 'email'>>) => {
     setUser((prev) => (prev ? { ...prev, ...patch } : prev))

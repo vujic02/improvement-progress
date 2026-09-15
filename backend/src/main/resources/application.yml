@@ -36,8 +36,10 @@ server:
 
 kaizen:
   jwt:
-    # HS256 needs >= 32 bytes. Override in every environment that is not a laptop.
-    secret: ${JWT_SECRET:dev-only-secret-change-me-0123456789abcdef}
+    # HS256 needs >= 32 bytes. No default on purpose: a server started without
+    # JWT_SECRET refuses to boot rather than sign tokens with a value anyone can
+    # read in this repo. application-dev.yml supplies one for laptops.
+    secret: ${JWT_SECRET:}
     # Seven days, in seconds.
     ttl-seconds: ${JWT_TTL_SECONDS:604800}
     issuer: kaizen

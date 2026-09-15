@@ -30,6 +30,10 @@ public class JwtService {
     private final JwtProperties props;
 
     public JwtService(JwtProperties props) {
+        if (props.secret() == null || props.secret().isBlank()) {
+            throw new IllegalStateException(
+                    "kaizen.jwt.secret is not set. Set JWT_SECRET, or run with the dev profile on a laptop.");
+        }
         byte[] secret = props.secret().getBytes(StandardCharsets.UTF_8);
         if (secret.length < MIN_SECRET_BYTES) {
             throw new IllegalStateException(

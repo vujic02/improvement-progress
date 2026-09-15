@@ -14,14 +14,14 @@ export interface ProfileStore {
   /** "Keep me signed in", as set on the auth screens. */
   keepSignedIn: boolean
   setKeepSignedIn: (keep: boolean) => void
-  /** Writes the name and email through to the session. */
-  saveAccount: (next: { name: string; email: string }) => Result
-  /** No backend yet — this only validates and reports back. */
+  /** Checks the fields, saves them through the API, then puts what it stored on the session. */
+  saveAccount: (next: { name: string; email: string }) => Promise<Result>
+  /** Checks the fields, then changes the password through the API. */
   changePassword: (next: {
     current: string
     password: string
     confirm: string
-  }) => Result
+  }) => Promise<Result>
 
   reminders: Reminder[]
   /** Patch one reminder — toggle it, or change when it fires. */

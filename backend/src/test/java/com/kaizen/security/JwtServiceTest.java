@@ -56,6 +56,14 @@ class JwtServiceTest {
     }
 
     @Test
+    void refusesToStartWithoutASecret() {
+        // What application.yml binds when JWT_SECRET is unset outside the dev profile.
+        assertThatThrownBy(() -> new JwtService(new JwtProperties("", 3600, "kaizen")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("JWT_SECRET");
+    }
+
+    @Test
     void refusesToStartWithAKeyTooShortForHs256() {
         assertThatThrownBy(() -> new JwtService(new JwtProperties("too-short", 3600, "kaizen")))
                 .isInstanceOf(IllegalStateException.class)

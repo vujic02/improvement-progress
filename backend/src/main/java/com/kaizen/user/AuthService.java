@@ -1,5 +1,10 @@
 package com.kaizen.user;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,11 +27,19 @@ public class AuthService {
     private final JwtService jwt;
     private final ProfileService profiles;
 
+    /**
+     * The hash of a random value nobody knows. Login compares against it when
+     * no account has the email, so a miss costs the same BCrypt round as a
+     * wrong password.
+     */
+    private final String missingAccountHash;
+
     public AuthService(UserRepository users, PasswordEncoder encoder, JwtService jwt, ProfileService profiles) {
         this.users = users;
         this.encoder = encoder;
         this.jwt = jwt;
         this.profiles = profiles;
+        this.missingAccountHash = encoder.encode(UUID.randomUUID().toString());
     }
 
     /**
@@ -35,6 +48,10 @@ public class AuthService {
      */
     @Transactional
     public AuthResponse register(RegisterRequest request) {
+        if (tooLong(request.password())) {
+            throw ApiException.badRequest("That password is too long.");
+        }
+
         String email = normalise(request.email());
         if (users.existsByEmail(email)) {
             throw ApiException.conflict("That email is already registered.");
@@ -47,15 +64,20 @@ public class AuthService {
 
     /**
      * One message for a missing account and a wrong password alike: telling
-     * them apart tells an attacker which emails are registered.
+     * them apart tells an attacker which emails are registered. So would
+     * answering a missing account faster, which is why the password is
+     * compared either way.
      */
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
-        User user = users.findByEmail(normalise(request.email()))
-                .filter(candidate -> encoder.matches(request.password(), candidate.getPasswordHash()))
-                .orElseThrow(() -> ApiException.unauthorized("That email and password don't match."));
+        Optional<User> user = users.findByEmail(normalise(request.email()));
+        boolean matches = passwordMatches(request.password(),
+                user.map(User::getPasswordHash).orElse(missingAccountHash));
 
-        return token(user);
+        if (user.isEmpty() || !matches) {
+            throw ApiException.unauthorized("That email and password don't match.");
+        }
+        return token(user.get());
     }
 
     @Transactional(readOnly = true)
@@ -85,11 +107,14 @@ public class AuthService {
     public void changePassword(Long userId, ChangePasswordRequest request) {
         User user = require(userId);
 
-        if (!encoder.matches(request.current(), user.getPasswordHash())) {
+        if (!passwordMatches(request.current(), user.getPasswordHash())) {
             throw ApiException.badRequest("That is not your current password.");
         }
         if (request.password().length() < User.PASSWORD_MIN) {
             throw ApiException.badRequest("Use at least " + User.PASSWORD_MIN + " characters.");
+        }
+        if (tooLong(request.password())) {
+            throw ApiException.badRequest("That password is too long.");
         }
         if (request.password().equals(request.current())) {
             throw ApiException.badRequest("That is your current password.");
@@ -109,8 +134,23 @@ public class AuthService {
         return new AuthResponse(jwt.issue(user.getId()), jwt.ttlSeconds(), UserResponse.of(user));
     }
 
+    /**
+     * BCrypt's matches() silently ignores everything past 72 bytes, so a
+     * stored 72-byte password would also accept itself plus any suffix.
+     * Nothing that long can be stored, so nothing that long may match.
+     */
+    private boolean passwordMatches(String raw, String hash) {
+        return !tooLong(raw) && encoder.matches(raw, hash);
+    }
+
+    /** Counted in bytes, not characters, because bytes are what BCrypt reads. */
+    private static boolean tooLong(String password) {
+        return password.getBytes(StandardCharsets.UTF_8).length > User.PASSWORD_MAX_BYTES;
+    }
+
     /** Emails are stored lowercase so the unique index and lookups agree. */
     private static String normalise(String email) {
-        return email.trim().toLowerCase();
+        // Locale.ROOT: under a Turkish default locale "I" would become a dotless "ı".
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 }

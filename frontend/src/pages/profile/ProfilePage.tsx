@@ -48,28 +48,44 @@ function AccountTab() {
   const { userName, signOut } = useSession()
   const { email, keepSignedIn, setKeepSignedIn, saveAccount, changePassword } = useProfile()
 
-  const [name, setName] = useState(userName)
-  const [address, setAddress] = useState(email)
+  // A field nobody has typed in shows what the session holds, so after a save
+  // the form shows what the server stored (it lowercases emails), not the draft.
+  const [draftName, setDraftName] = useState<string | null>(null)
+  const [draftAddress, setDraftAddress] = useState<string | null>(null)
   const [detailsNote, setDetailsNote] = useState<Note>(null)
+  const [savingDetails, setSavingDetails] = useState(false)
 
   const [current, setCurrent] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [passwordNote, setPasswordNote] = useState<Note>(null)
+  const [savingPassword, setSavingPassword] = useState(false)
 
+  const name = draftName ?? userName
+  const address = draftAddress ?? email
   const dirty = name !== userName || address !== email
 
-  const submitDetails = (event: FormEvent<HTMLFormElement>) => {
+  const submitDetails = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const result = saveAccount({ name, email: address })
-    setDetailsNote(
-      result.ok ? { tone: 'ok', text: 'Details saved.' } : { tone: 'bad', text: result.reason },
-    )
+    if (savingDetails) return
+    setSavingDetails(true)
+    const result = await saveAccount({ name, email: address })
+    setSavingDetails(false)
+    if (result.ok) {
+      setDraftName(null)
+      setDraftAddress(null)
+      setDetailsNote({ tone: 'ok', text: 'Details saved.' })
+    } else {
+      setDetailsNote({ tone: 'bad', text: result.reason })
+    }
   }
 
-  const submitPassword = (event: FormEvent<HTMLFormElement>) => {
+  const submitPassword = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const result = changePassword({ current, password, confirm })
+    if (savingPassword) return
+    setSavingPassword(true)
+    const result = await changePassword({ current, password, confirm })
+    setSavingPassword(false)
     if (result.ok) {
       setCurrent('')
       setPassword('')
@@ -95,7 +111,7 @@ function AccountTab() {
             placeholder="Your name"
             value={name}
             onChange={(e) => {
-              setName(e.target.value)
+              setDraftName(e.target.value)
               setDetailsNote(null)
             }}
           />
@@ -107,7 +123,7 @@ function AccountTab() {
             placeholder="Your email address"
             value={address}
             onChange={(e) => {
-              setAddress(e.target.value)
+              setDraftAddress(e.target.value)
               setDetailsNote(null)
             }}
           />
@@ -122,7 +138,7 @@ function AccountTab() {
           ) : null}
 
           <div className={styles.actions}>
-            <Button type="submit" size="md" disabled={!dirty}>
+            <Button type="submit" size="md" disabled={!dirty || savingDetails}>
               Save changes
             </Button>
             {dirty ? (
@@ -131,8 +147,8 @@ function AccountTab() {
                 variant="subtle"
                 size="md"
                 onClick={() => {
-                  setName(userName)
-                  setAddress(email)
+                  setDraftName(null)
+                  setDraftAddress(null)
                   setDetailsNote(null)
                 }}
               >
@@ -194,7 +210,7 @@ function AccountTab() {
             ) : null}
 
             <div className={styles.actions}>
-              <Button type="submit" size="md">
+              <Button type="submit" size="md" disabled={savingPassword}>
                 Update password
               </Button>
             </div>

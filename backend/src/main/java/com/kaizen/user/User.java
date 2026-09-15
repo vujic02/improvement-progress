@@ -18,6 +18,9 @@ public class User {
     /** Shortest password the register and change-password forms accept. */
     public static final int PASSWORD_MIN = 8;
 
+    /** BCrypt reads no further than this, so no password may be longer. Counted in UTF-8 bytes. */
+    public static final int PASSWORD_MAX_BYTES = 72;
+
     public static final int NAME_MAX = 80;
 
     @Id

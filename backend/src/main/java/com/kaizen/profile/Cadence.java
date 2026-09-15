@@ -1,5 +1,7 @@
 package com.kaizen.profile;
 
+import java.util.Locale;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
@@ -14,7 +16,7 @@ public enum Cadence {
 
     @JsonValue
     public String wire() {
-        return name().toLowerCase();
+        return name().toLowerCase(Locale.ROOT);
     }
 
     @JsonCreator
@@ -23,7 +25,8 @@ public enum Cadence {
             throw new IllegalArgumentException("Pick a cadence.");
         }
         try {
-            return Cadence.valueOf(value.trim().toUpperCase());
+            // Locale.ROOT: under a Turkish default locale "daily" would upper-case to "DAİLY".
+            return Cadence.valueOf(value.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("'" + value + "' is not a cadence.");
         }
