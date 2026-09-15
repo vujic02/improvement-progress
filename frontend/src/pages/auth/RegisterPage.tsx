@@ -6,14 +6,23 @@ import { AuthLayout } from './AuthLayout'
 import styles from './AuthLayout.module.css'
 
 export function RegisterPage() {
-  const { signIn } = useSession()
+  const { register } = useSession()
   const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [keepSignedIn, setKeepSignedIn] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
 
   // The name typed here becomes the name Jarvis greets you with.
-  const enter = () => {
-    signIn(name)
-    navigate('boot')
+  const enter = async () => {
+    if (busy) return
+    setBusy(true)
+    setError(null)
+    const result = await register(name, email, password)
+    setBusy(false)
+    if (result.ok) navigate('boot')
+    else setError(result.reason)
   }
 
   return (
@@ -22,11 +31,10 @@ export function RegisterPage() {
       title="Set up your protocol"
       blurb="A few details and I will start tracking your days for you."
       cta="Create account"
+      error={error}
+      busy={busy}
       onSubmit={enter}
-      onSocial={() => {
-        signIn()
-        navigate('boot')
-      }}
+      onSocial={() => setError('Apple and Google sign-in are not connected yet.')}
     >
       <div className={styles.fields}>
         <Input
@@ -34,16 +42,29 @@ export function RegisterPage() {
           name="name"
           autoComplete="name"
           placeholder="Your name"
+          required
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <Input label="Email" type="email" name="email" autoComplete="email" placeholder="Your email address" />
+        <Input
+          label="Email"
+          type="email"
+          name="email"
+          autoComplete="email"
+          placeholder="Your email address"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
         <Input
           label="Password"
           type="password"
           name="password"
           autoComplete="new-password"
           placeholder="Your password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
         />
       </div>
       <Switch checked={keepSignedIn} onChange={setKeepSignedIn} label="Keep me signed in" />

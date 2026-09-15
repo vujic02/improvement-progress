@@ -19,8 +19,12 @@ export interface AuthLayoutProps {
   cta: string
   /** The mode-specific fields and options. */
   children: ReactNode
+  /** Server or validation message shown above the submit button. */
+  error?: string | null
+  /** Disables the submit button while a request is in flight. */
+  busy?: boolean
   onSubmit: () => void
-  /** Called when a social provider is used — same landing as a normal sign-in. */
+  /** Called when a social provider button is pressed. */
   onSocial: () => void
 }
 
@@ -34,6 +38,8 @@ export function AuthLayout({
   blurb,
   cta,
   children,
+  error,
+  busy,
   onSubmit,
   onSocial,
 }: AuthLayoutProps) {
@@ -69,7 +75,12 @@ export function AuthLayout({
 
         <form className={styles.form} onSubmit={handleSubmit}>
           {children}
-          <Button type="submit" size="lg" block>
+          {error ? (
+            <span className={styles.error} role="alert">
+              {error}
+            </span>
+          ) : null}
+          <Button type="submit" size="lg" block disabled={busy}>
             {cta}
           </Button>
         </form>

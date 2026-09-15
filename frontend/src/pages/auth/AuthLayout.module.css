@@ -106,6 +106,12 @@
   gap: 16px;
 }
 
+.error {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--accent-pink);
+}
+
 .divider {
   display: flex;
   align-items: center;
