@@ -64,15 +64,23 @@ grid rows and the analysis breakdown on the dashboard.
   ragged last row. Changing it means re-checking that.
 - A custom type is **an icon plus a name**. Nothing else, for now.
 - **Names are capped at 30 characters** (`TASK_TYPE_NAME_MAX`), enforced by
-  `maxLength` on the input *and* re-checked in `addCustom`.
+  `maxLength` on the input, re-checked in `addCustom`, and again by
+  `TaskTypeService` on the server.
 - Names must be non-blank and unique, case-insensitively, across defaults and
   custom types together.
 - Custom types are removable; removing one frees its slot immediately.
 
 **Colour:** there is no colour picker yet. Each new custom type takes the next
-colour from `CUSTOM_COLORS` and wraps around when the list runs out. If a
-picker is added later, keep this as the default rather than making the user
-choose before they can save.
+colour from `CUSTOM_COLORS` and wraps around when the list runs out. The
+server picks it (`TaskTypeService.add`) and the provider keeps what comes back;
+the create form's preview repeats the same pick, so the two must stay in step.
+If a picker is added later, keep this as the default rather than making the
+user choose before they can save.
+
+**Loading:** custom types come from `GET /api/task-types` when the provider
+mounts. Until that answers, and if it fails, the page shows a loading or retry
+card rather than the empty state, and "New task type" stays disabled — the
+duplicate and limit checks in `addCustom` have nothing to check against yet.
 
 **Icons:** the create form offers `PICKABLE_ICONS`, a subset of the app's icon
 set. Adding an icon to the picker means adding a glyph to
@@ -265,13 +273,12 @@ reminders actually get delivered in-app.
 
 ## Known gaps
 
-- **Most of the frontend is not wired to the backend yet.** Sign-in and the
-  account half of the profile are. Custom types still live in
-  `TaskTypesProvider` state, goals in `PursuitsProvider`, reminders and
-  channels in `ProfileProvider`; all of them vanish on reload and reset when
-  another account signs in. Every consumer reads through `useTaskTypes()`,
-  `useSavings()`, `useGrowth()`, `useDreams()` or `useProfile()`, so only the
-  providers need to change.
+- **Most of the frontend is not wired to the backend yet.** Sign-in, custom
+  task types and the account half of the profile are. Goals still live in
+  `PursuitsProvider` state, reminders and channels in `ProfileProvider`; both
+  vanish on reload and reset when another account signs in. Every consumer
+  reads through `useSavings()`, `useGrowth()`, `useDreams()` or
+  `useProfile()`, so only the providers need to change.
 - **No password reset or email verification.** Both need outgoing email.
   Apple and Google sign-in were removed from the auth screens until OAuth
   exists.

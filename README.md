@@ -140,10 +140,11 @@ moment the account is created.
 
 ## What is not wired yet
 
-Sign-in is wired: `SessionProvider` and the account half of `ProfileProvider`
-(details, password, sign out everywhere) talk to the API. `TaskTypesProvider`,
-`PursuitsProvider` and the rest of `ProfileProvider` (reminders, channels) still
-hold everything in `useState`, reset whenever a different account signs in.
+Sign-in and task types are wired: `SessionProvider`, `TaskTypesProvider` and
+the account half of `ProfileProvider` (details, password, sign out everywhere)
+talk to the API. `PursuitsProvider` and the rest of `ProfileProvider`
+(reminders, channels) still hold everything in `useState`, reset whenever a
+different account signs in.
 
 Not built: password reset and email verification (both need outgoing email),
 and Apple/Google sign-in, whose buttons were removed until OAuth exists.

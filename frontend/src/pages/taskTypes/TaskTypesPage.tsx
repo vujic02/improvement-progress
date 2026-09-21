@@ -27,15 +27,30 @@ import styles from './TaskTypesPage.module.css'
 const FIRST_ICON: IconName = PICKABLE_ICONS[0]
 
 export function TaskTypesPage() {
-  const { defaults, custom, remaining, addCustom, removeCustom } = useTaskTypes()
+  const {
+    defaults,
+    custom,
+    remaining,
+    loading,
+    error: loadError,
+    reload,
+    addCustom,
+    removeCustom,
+  } = useTaskTypes()
 
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
   const [icon, setIcon] = useState<IconName>(FIRST_ICON)
   const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  // The type whose delete is in flight, so a second click cannot send another.
+  const [removing, setRemoving] = useState<string | null>(null)
+  const [removeError, setRemoveError] = useState<string | null>(null)
 
   const used = custom.length
   const full = remaining <= 0
+  // Until the list has loaded, the local checks in addCustom have nothing to check against.
+  const ready = !loading && !loadError
   // Preview shows the colour the type would actually be given.
   const nextColor = CUSTOM_COLORS[used % CUSTOM_COLORS.length]
 
@@ -46,11 +61,23 @@ export function TaskTypesPage() {
     setError(null)
   }
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const result = addCustom(name, icon)
+    if (saving) return
+    setSaving(true)
+    const result = await addCustom(name, icon)
+    setSaving(false)
     if (result.ok) reset()
     else setError(result.reason)
+  }
+
+  const remove = async (id: string) => {
+    if (removing) return
+    setRemoving(id)
+    setRemoveError(null)
+    const result = await removeCustom(id)
+    setRemoving(null)
+    if (!result.ok) setRemoveError(result.reason)
   }
 
   return (
@@ -128,8 +155,8 @@ export function TaskTypesPage() {
               ) : null}
 
               <div className={styles.actions}>
-                <Button type="submit" size="md">
-                  Create type
+                <Button type="submit" size="md" disabled={saving}>
+                  {saving ? 'Creating…' : 'Create type'}
                 </Button>
                 <Button type="button" variant="subtle" size="md" onClick={reset}>
                   Cancel
@@ -152,14 +179,34 @@ export function TaskTypesPage() {
             }
           />
           {!creating ? (
-            <Button size="md" disabled={full} onClick={() => setCreating(true)}>
+            <Button size="md" disabled={full || !ready} onClick={() => setCreating(true)}>
               <Icon name="plus" size={16} />
               New task type
             </Button>
           ) : null}
         </div>
 
-        {custom.length ? (
+        {removeError ? (
+          <span className={styles.error} role="alert">
+            {removeError}
+          </span>
+        ) : null}
+
+        {/* A load that is running or failed must not pass for an empty list. */}
+        {loading ? (
+          <GlassCard tone="b" className={styles.empty}>
+            <span className={styles.emptyText}>Loading your types…</span>
+          </GlassCard>
+        ) : loadError ? (
+          <GlassCard tone="b" className={styles.empty}>
+            <span className={styles.error} role="alert">
+              Couldn't load your types. {loadError}
+            </span>
+            <Button size="sm" onClick={reload}>
+              Try again
+            </Button>
+          </GlassCard>
+        ) : custom.length ? (
           <div className={styles.grid}>
             {custom.map((type) => (
               <TaskTypeCard
@@ -168,7 +215,7 @@ export function TaskTypesPage() {
                 icon={type.icon}
                 color={type.color}
                 meta="Yours"
-                onRemove={() => removeCustom(type.id)}
+                onRemove={() => remove(type.id)}
               />
             ))}
           </div>
