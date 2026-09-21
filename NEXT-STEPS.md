@@ -340,6 +340,7 @@ real `CORS_ORIGINS` setting.
 - [X] `lib/api.ts` exists (step 8) — `.env.local` is optional, `api.ts` falls back to `http://localhost:8080`
 - [X] `SessionProvider` does real register/login/me/logout; refresh keeps you in (step 9)
 - [X] `TaskTypesProvider` loads and writes through the API (step 10)
+- [X] CI runs lint, the frontend build and the backend tests on every PR into `master` (`.github/workflows/ci.yml`)
 - [ ] `PursuitsProvider` — savings first, then growth, then dreams (step 10)
 - [ ] `ProfileProvider` and reminders (step 10)
 - [ ] Every page handles loading and error, not just data (step 11)
