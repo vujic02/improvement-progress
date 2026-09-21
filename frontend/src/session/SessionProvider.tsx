@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { get, getToken, post, setToken, setUnauthorizedHandler } from '../lib/api'
+import { failure, get, getToken, post, setToken, setUnauthorizedHandler } from '../lib/api'
 import {
   DEFAULT_NAME,
   SessionContext,
@@ -11,10 +11,6 @@ import {
 
 /** Shown on sign-in when a session ends without the user ending it. */
 const SESSION_ENDED = 'Your session ended. Sign in again.'
-
-function failure(error: unknown): Result {
-  return { ok: false, reason: error instanceof Error ? error.message : 'Something went wrong.' }
-}
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)

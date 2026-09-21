@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { DEFAULT_REMINDERS, type Reminder } from '../data/reminders'
-import { getToken, isTokenRemembered, patch, post, setToken } from '../lib/api'
+import { failure, getToken, isTokenRemembered, patch, post, setToken } from '../lib/api'
 import { useSession, type AuthResponse, type User } from '../session/context'
 import { ProfileContext, type DeliveryChannels, type Result } from './context'
 
@@ -8,10 +8,6 @@ import { ProfileContext, type DeliveryChannels, type Result } from './context'
 export const PASSWORD_MIN = 8
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-function failure(error: unknown): Result {
-  return { ok: false, reason: error instanceof Error ? error.message : 'Something went wrong.' }
-}
 
 /**
  * Account details and notification settings. The account half goes through the
