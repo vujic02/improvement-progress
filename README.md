@@ -197,7 +197,7 @@ if yours differ. Given a deploy user called `deploy`:
 sudo chown -R deploy:deploy /opt/kaizen /var/www/kaizen
 
 # The one privileged thing it does. Nothing else is allowed.
-echo 'deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart kaizen-api' \
+echo 'deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart kaizen' \
   | sudo tee /etc/sudoers.d/kaizen-deploy
 sudo chmod 440 /etc/sudoers.d/kaizen-deploy
 ```
