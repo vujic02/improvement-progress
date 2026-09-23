@@ -105,6 +105,21 @@ custom name still has to be unique against them, so
 The colour is assigned server-side, taking the next one from `CUSTOM_COLORS`
 and wrapping around, because there is no colour picker yet.
 
+### Day tasks
+
+What the dashboard scores: one row per task on one day. `typeId` is a built-in
+type's id (`deep`) or a custom type's id (`7`); the server checks the account
+can actually use it. `day` is `yyyy-mm-dd`, from 2020 to a year ahead, and a
+read asks for a year at most. **Deleting a custom task type deletes the tasks
+logged against it.**
+
+| Method | Path | Body |
+| --- | --- | --- |
+| `GET` | `/api/day-tasks?from=2026-03-01&to=2026-03-31` | — |
+| `POST` | `/api/day-tasks` | `{ day, typeId, label }` |
+| `PATCH` | `/api/day-tasks/{id}` | `{ done?, label? }`, or empty to flip `done` |
+| `DELETE` | `/api/day-tasks/{id}` | — |
+
 ### Pursuits — savings, self-improvement, dreams
 
 One resource, three pages. `area` is `savings`, `growth` or `dreams`.
@@ -140,11 +155,14 @@ moment the account is created.
 
 ## What is not wired yet
 
-Sign-in and task types are wired: `SessionProvider`, `TaskTypesProvider` and
-the account half of `ProfileProvider` (details, password, sign out everywhere)
-talk to the API. `PursuitsProvider` and the rest of `ProfileProvider`
-(reminders, channels) still hold everything in `useState`, reset whenever a
-different account signs in.
+Sign-in, task types and today's tasks are wired: `SessionProvider`,
+`TaskTypesProvider`, `DaysProvider` and the account half of `ProfileProvider`
+(details, password, sign out everywhere) talk to the API. `PursuitsProvider`
+and the rest of `ProfileProvider` (reminders, channels) still hold everything
+in `useState`, reset whenever a different account signs in.
+
+The dashboard's week and month views are still seeded mock data; only today's
+list is real. They read the same `/api/day-tasks` range next.
 
 Not built: password reset and email verification (both need outgoing email),
 and Apple/Google sign-in, whose buttons were removed until OAuth exists.

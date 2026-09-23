@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Button, Eyebrow, Icon, ProgressBar } from '../../components'
-import { TODAY_TASKS } from '../../data/tasks'
+import { useDays } from '../../days/context'
 import { ASSISTANT_NAME } from '../../lib/brand'
 import { bootStamp, salutation } from '../../lib/date'
 import { seeded } from '../../lib/seeded'
@@ -26,6 +26,7 @@ export interface WelcomePageProps {
 /** Jarvis loading screen — waveform, typed greeting, progress, then hand-off. */
 export function WelcomePage({ variant, next, typingSpeed = 55, voice = true }: WelcomePageProps) {
   const { userName } = useSession()
+  const { today } = useDays()
   const now = useMemo(() => new Date(), [])
 
   // Seeded so every bar keeps its own rhythm across re-renders.
@@ -38,12 +39,16 @@ export function WelcomePage({ variant, next, typingSpeed = 55, voice = true }: W
     [],
   )
 
-  const openCount = TODAY_TASKS.filter((t) => !t.done).length
+  // Signed out, the cold-boot screen has no day to count — and no business
+  // knowing one — so it asks instead of claiming a number.
+  const openCount = today.filter((t) => !t.done).length
   const headline = `${salutation(now)}, ${userName}.`
   const subline =
     variant === 'boot'
       ? 'Your month is loaded. What are we building today?'
-      : `${openCount} tasks still open today. What are we building today?`
+      : openCount
+        ? `${openCount} tasks still open today. What are we building today?`
+        : 'What are we building today?'
 
   const typed = useTypedGreeting({
     headline,

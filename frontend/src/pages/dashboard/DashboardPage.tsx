@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { CategoryCard, SegmentedToggle, StatCard, type IconName } from '../../components'
-import { TODAY_TASKS, type DayTask } from '../../data/tasks'
+import { useDays } from '../../days/context'
 import { useMonthData } from '../../data/useMonthData'
 import { useWeekData } from '../../data/useWeekData'
 import { APP_NAME } from '../../lib/brand'
@@ -66,18 +66,21 @@ export interface DashboardPageProps {
 
 export function DashboardPage({ defaultView = 'month' }: DashboardPageProps) {
   const { all: types } = useTaskTypes()
+  const { today: tasks, loading: daysLoading } = useDays()
   const [view, setView] = useState<View>(defaultView)
-  const [tasks, setTasks] = useState<DayTask[]>(TODAY_TASKS)
 
   const now = useMemo(() => new Date(), [])
   const month = useMonthData(now, types)
   const week = useWeekData(now)
 
   const doneToday = tasks.filter((t) => t.done).length
-  const todayLine = `${DAY_NAMES[now.getDay()]} ${now.getDate()} — ${doneToday} of ${tasks.length} tasks done, ${tasks.length - doneToday} still open`
-
-  const toggleTask = (id: string) =>
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)))
+  const donePct = tasks.length ? Math.round((doneToday / tasks.length) * 100) : 0
+  const tally = daysLoading
+    ? 'loading your day'
+    : tasks.length
+      ? `${doneToday} of ${tasks.length} tasks done, ${tasks.length - doneToday} still open`
+      : 'nothing logged yet'
+  const todayLine = `${DAY_NAMES[now.getDay()]} ${now.getDate()} — ${tally}`
 
   return (
     <DashboardLayout activeId="dashboard" trail={[APP_NAME, 'Dashboard']}>
@@ -98,7 +101,7 @@ export function DashboardPage({ defaultView = 'month' }: DashboardPageProps) {
         <StatCard
           label="Tasks today"
           value={`${doneToday}/${tasks.length}`}
-          delta={`+${Math.round((doneToday / tasks.length) * 100)}%`}
+          delta={`${donePct}%`}
           icon="checkmarkCircle"
         />
         <StatCard label="Month progress" value={`${month.monthPct}%`} delta="+6%" icon="statsChart" />
@@ -117,15 +120,9 @@ export function DashboardPage({ defaultView = 'month' }: DashboardPageProps) {
       </div>
 
       {view === 'month' ? (
-        <MonthView
-          month={month}
-          monthLabel={monthTitle(now)}
-          todayLine={todayLine}
-          tasks={tasks}
-          onToggleTask={toggleTask}
-        />
+        <MonthView month={month} monthLabel={monthTitle(now)} todayLine={todayLine} />
       ) : (
-        <WeekView week={week} todayLine={todayLine} tasks={tasks} onToggleTask={toggleTask} />
+        <WeekView week={week} todayLine={todayLine} />
       )}
     </DashboardLayout>
   )

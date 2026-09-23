@@ -19,6 +19,7 @@ import {
   PICKABLE_ICONS,
   TASK_TYPE_NAME_MAX,
 } from '../../data/taskTypes'
+import { useDays } from '../../days/context'
 import { APP_NAME } from '../../lib/brand'
 import { useTaskTypes } from '../../taskTypes/context'
 import { DashboardLayout } from '../dashboard/DashboardLayout'
@@ -37,6 +38,8 @@ export function TaskTypesPage() {
     addCustom,
     removeCustom,
   } = useTaskTypes()
+  // Deleting a type deletes its tasks server-side, so today's list is stale after.
+  const { reload: reloadDays } = useDays()
 
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
@@ -71,13 +74,17 @@ export function TaskTypesPage() {
     else setError(result.reason)
   }
 
-  const remove = async (id: string) => {
+  const remove = async (id: string, label: string) => {
     if (removing) return
+    // Its tasks go with it, and past days are scored on those, so this one asks.
+    if (!window.confirm(`Delete "${label}"? Every task logged against it goes too.`)) return
+
     setRemoving(id)
     setRemoveError(null)
     const result = await removeCustom(id)
     setRemoving(null)
-    if (!result.ok) setRemoveError(result.reason)
+    if (result.ok) reloadDays()
+    else setRemoveError(result.reason)
   }
 
   return (
@@ -215,7 +222,7 @@ export function TaskTypesPage() {
                 icon={type.icon}
                 color={type.color}
                 meta="Yours"
-                onRemove={() => remove(type.id)}
+                onRemove={() => remove(type.id, type.label)}
               />
             ))}
           </div>

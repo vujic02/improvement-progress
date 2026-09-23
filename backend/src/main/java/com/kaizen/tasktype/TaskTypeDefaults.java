@@ -17,9 +17,12 @@ import java.util.stream.Collectors;
  * <li>{@code CUSTOM_COLORS} — there is no colour picker yet, so each new custom
  * type takes the next colour and wraps around. Assigning it is the store's job,
  * and the store is now here.
+ * <li>{@code DEFAULT_KEYS} — the ids those 12 go by. A day task names its type
+ * with one of these or with a custom type's id, so this side has to know which
+ * strings are real.
  * </ul>
  *
- * <p>Both lists must stay in step with the frontend's.
+ * <p>All three lists must stay in step with the frontend's.
  */
 public final class TaskTypeDefaults {
 
@@ -43,6 +46,21 @@ public final class TaskTypeDefaults {
             "Health / medical",
             "Planning / review");
 
+    /** The ids of DEFAULT_LABELS, in the same order. */
+    public static final Set<String> DEFAULT_KEYS = Set.of(
+            "deep",
+            "gym",
+            "learn",
+            "money",
+            "chores",
+            "mind",
+            "food",
+            "sleep",
+            "social",
+            "create",
+            "health",
+            "plan");
+
     public static final List<String> CUSTOM_COLORS = List.of(
             "#0075FF",
             "#01B574",
@@ -61,6 +79,11 @@ public final class TaskTypeDefaults {
 
     public static boolean isDefaultLabel(String label) {
         return DEFAULT_LABELS_LOWER.contains(label.toLowerCase(Locale.ROOT));
+    }
+
+    /** Whether this is a built-in type's id rather than a custom type's. */
+    public static boolean isDefaultKey(String key) {
+        return DEFAULT_KEYS.contains(key);
     }
 
     private TaskTypeDefaults() {

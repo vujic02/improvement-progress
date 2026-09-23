@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { DaysProvider } from './days/DaysProvider'
 import { DreamsContext } from './dreams/context'
 import { GrowthContext } from './growth/context'
 import { RegisterPage } from './pages/auth/RegisterPage'
@@ -83,15 +84,17 @@ function AccountScope() {
 
   return (
     <TaskTypesProvider key={user?.id ?? 'signed-out'}>
-      <PursuitsProvider context={SavingsContext}>
-        <PursuitsProvider context={GrowthContext}>
-          <PursuitsProvider context={DreamsContext}>
-            <ProfileProvider>
-              <Screen />
-            </ProfileProvider>
+      <DaysProvider>
+        <PursuitsProvider context={SavingsContext}>
+          <PursuitsProvider context={GrowthContext}>
+            <PursuitsProvider context={DreamsContext}>
+              <ProfileProvider>
+                <Screen />
+              </ProfileProvider>
+            </PursuitsProvider>
           </PursuitsProvider>
         </PursuitsProvider>
-      </PursuitsProvider>
+      </DaysProvider>
     </TaskTypesProvider>
   )
 }

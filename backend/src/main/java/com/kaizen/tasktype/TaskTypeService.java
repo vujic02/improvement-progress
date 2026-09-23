@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.kaizen.common.ApiException;
+import com.kaizen.daytask.DayTaskRepository;
 import com.kaizen.tasktype.dto.NewTaskTypeRequest;
 import com.kaizen.tasktype.dto.TaskTypeResponse;
 
@@ -13,9 +14,11 @@ import com.kaizen.tasktype.dto.TaskTypeResponse;
 public class TaskTypeService {
 
     private final CustomTaskTypeRepository repo;
+    private final DayTaskRepository dayTasks;
 
-    public TaskTypeService(CustomTaskTypeRepository repo) {
+    public TaskTypeService(CustomTaskTypeRepository repo, DayTaskRepository dayTasks) {
         this.repo = repo;
+        this.dayTasks = dayTasks;
     }
 
     @Transactional(readOnly = true)
@@ -50,10 +53,16 @@ public class TaskTypeService {
         return TaskTypeResponse.of(repo.save(new CustomTaskType(userId, label, request.icon().trim(), color)));
     }
 
+    /**
+     * Removing a type takes the days' tasks logged against it, so past scores
+     * change. The schema says the same thing with ON DELETE CASCADE; this is
+     * what makes it true where the schema comes from the entities instead.
+     */
     @Transactional
     public void remove(Long userId, Long id) {
         CustomTaskType type = repo.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> ApiException.notFound("No such task type."));
+        dayTasks.deleteByUserIdAndCustomTypeId(userId, id);
         repo.delete(type);
     }
 }

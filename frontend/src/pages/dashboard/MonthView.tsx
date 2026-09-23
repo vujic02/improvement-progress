@@ -1,19 +1,16 @@
-import { Button, GlassCard, IconButton, ProgressBar, SectionHeading, TaskRow } from '../../components'
-import { taskTypeById } from '../../data/taskTypes'
-import type { DayTask } from '../../data/tasks'
+import { GlassCard, IconButton, ProgressBar, SectionHeading } from '../../components'
 import type { MonthData } from '../../data/useMonthData'
 import { HabitGrid } from './HabitGrid'
+import { TodayTasks } from './TodayTasks'
 import styles from './views.module.css'
 
 export interface MonthViewProps {
   month: MonthData
   monthLabel: string
   todayLine: string
-  tasks: DayTask[]
-  onToggleTask: (id: string) => void
 }
 
-export function MonthView({ month, monthLabel, todayLine, tasks, onToggleTask }: MonthViewProps) {
+export function MonthView({ month, monthLabel, todayLine }: MonthViewProps) {
   return (
     <div className={styles.stack}>
       <GlassCard tone="b">
@@ -27,32 +24,7 @@ export function MonthView({ month, monthLabel, todayLine, tasks, onToggleTask }:
       </GlassCard>
 
       <div className={styles.monthSplit}>
-        <GlassCard>
-          <SectionHeading
-            title="Today's tasks"
-            subtitle={todayLine}
-            action={
-              <Button variant="ghost" size="sm" style={{ minWidth: 118 }}>
-                Add task
-              </Button>
-            }
-          />
-          <div className={styles.taskList}>
-            {tasks.map((task) => {
-              const type = taskTypeById(task.type)
-              return (
-                <TaskRow
-                  key={task.id}
-                  label={task.label}
-                  type={type.label}
-                  color={type.color}
-                  done={task.done}
-                  onToggle={() => onToggleTask(task.id)}
-                />
-              )
-            })}
-          </div>
-        </GlassCard>
+        <TodayTasks subtitle={todayLine} />
 
         <GlassCard>
           <SectionHeading title="Analysis" subtitle="By task type, this month" />
