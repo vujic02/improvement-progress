@@ -1,0 +1,194 @@
+name: Build and deploy
+
+# One pipeline. A pull request stops after the two build jobs; a push to master
+# carries on into deploy, which takes the artifacts those jobs just produced
+# rather than building the same commit twice.
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/build-and-deploy.yml"
+  push:
+    branches:
+      - master
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/build-and-deploy.yml"
+  # Re-run a deploy without a new commit, for one that failed on the VPS side.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Where the manual deployment put things. Change these, not the steps below.
+  SERVICE: kaizen-api
+  JAR: /opt/kaizen/kaizen-api.jar
+  WEB_ROOT: /var/www/kaizen
+  API_PORT: 8080
+
+jobs:
+  backend:
+    name: Build and test backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v6
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+
+      - name: Build and test
+        working-directory: backend
+        run: mvn -B -ntp clean verify
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-surefire-reports
+          path: backend/target/surefire-reports/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload backend
+        uses: actions/upload-artifact@v7
+        with:
+          name: kaizen-backend
+          path: backend/target/kaizen-api-*.jar
+          if-no-files-found: error
+          retention-days: 7
+
+  frontend:
+    name: Build frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Type-check and build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Upload frontend
+        uses: actions/upload-artifact@v7
+        with:
+          name: kaizen-frontend
+          path: frontend/dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Deploy to the VPS
+    needs: [backend, frontend]
+    # Master only. A pull request builds and stops there.
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    # Two deploys at once would race over the same jar and the same web root.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - name: Take the jar the backend job built
+        uses: actions/download-artifact@v7
+        with:
+          name: kaizen-backend
+          path: release/backend
+
+      - name: Take the site the frontend job built
+        uses: actions/download-artifact@v7
+        with:
+          name: kaizen-frontend
+          path: release/frontend
+
+      - name: Load the deploy key
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          HOST_KEY: ${{ secrets.VPS_HOST_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          # The server's own host key, kept as a secret rather than fetched with
+          # ssh-keyscan here, which would trust whatever answered at the time.
+          printf '%s\n' "$HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Copy the frontend
+        env:
+          TARGET: ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+          PORT: ${{ secrets.VPS_PORT || '22' }}
+        run: |
+          # --delete removes files in WEB_ROOT that the build no longer has, so
+          # a stale asset can never outlive it. Point WEB_ROOT at the app's own
+          # directory and nothing else, or this deletes the neighbours.
+          rsync -az --delete -e "ssh -i ~/.ssh/deploy -p $PORT" \
+            release/frontend/ "$TARGET:$WEB_ROOT/"
+
+      - name: Copy the jar
+        env:
+          TARGET: ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+          PORT: ${{ secrets.VPS_PORT || '22' }}
+        run: |
+          # Landed beside the running one; the restart step swaps it in.
+          scp -i ~/.ssh/deploy -P "$PORT" release/backend/kaizen-api-*.jar "$TARGET:$JAR.new"
+
+      - name: Restart, health check, roll back if it does not come up
+        env:
+          TARGET: ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}
+          PORT: ${{ secrets.VPS_PORT || '22' }}
+        run: |
+          ssh -i ~/.ssh/deploy -p "$PORT" "$TARGET" \
+            JAR="$JAR" SERVICE="$SERVICE" API_PORT="$API_PORT" bash -s <<'REMOTE'
+          set -euo pipefail
+
+          # Keep the jar that is running now, so a bad release has a way back.
+          [ -f "$JAR" ] && cp -f "$JAR" "$JAR.prev"
+          mv -f "$JAR.new" "$JAR"
+          sudo systemctl restart "$SERVICE"
+
+          # Flyway migrates at startup, so a bad migration shows up here too.
+          # There is no actuator in this app: an unauthenticated 401 from a
+          # guarded route is proof enough that it is answering.
+          for _ in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$API_PORT/api/auth/me" || true)
+            if [ "$code" = "401" ]; then
+              echo "Up and answering."
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "The new jar never answered in 60s. Rolling back."
+          if [ -f "$JAR.prev" ]; then
+            mv -f "$JAR.prev" "$JAR"
+            sudo systemctl restart "$SERVICE"
+          fi
+          exit 1
+          REMOTE
