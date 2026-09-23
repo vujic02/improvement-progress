@@ -26,8 +26,8 @@ permissions:
 
 env:
   # Where the manual deployment put things. Change these, not the steps below.
-  SERVICE: kaizen-api
-  JAR: /opt/kaizen/kaizen-api.jar
+  SERVICE: kaizen
+  JAR: /opt/kaizen/app.jar
   WEB_ROOT: /var/www/kaizen
   API_PORT: 8080
 
