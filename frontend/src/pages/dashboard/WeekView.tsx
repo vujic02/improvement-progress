@@ -1,27 +1,22 @@
 import {
   Badge,
-  Button,
   CheckSquare,
   DonutProgress,
   Eyebrow,
   GlassCard,
   MetricRow,
   SectionHeading,
-  TaskRow,
 } from '../../components'
-import { taskTypeById } from '../../data/taskTypes'
-import type { DayTask } from '../../data/tasks'
 import type { WeekData } from '../../data/useWeekData'
+import { TodayTasks } from './TodayTasks'
 import styles from './views.module.css'
 
 export interface WeekViewProps {
   week: WeekData
   todayLine: string
-  tasks: DayTask[]
-  onToggleTask: (id: string) => void
 }
 
-export function WeekView({ week, todayLine, tasks, onToggleTask }: WeekViewProps) {
+export function WeekView({ week, todayLine }: WeekViewProps) {
   return (
     <div className={styles.stack}>
       <div className={styles.weekSplit}>
@@ -51,32 +46,7 @@ export function WeekView({ week, todayLine, tasks, onToggleTask }: WeekViewProps
           />
         </GlassCard>
 
-        <GlassCard>
-          <SectionHeading
-            title="Today's tasks"
-            subtitle={todayLine}
-            action={
-              <Button variant="ghost" size="sm" style={{ minWidth: 100 }}>
-                Add task
-              </Button>
-            }
-          />
-          <div className={styles.compactList}>
-            {tasks.map((task) => {
-              const type = taskTypeById(task.type)
-              return (
-                <TaskRow
-                  key={task.id}
-                  label={task.label}
-                  color={type.color}
-                  done={task.done}
-                  compact
-                  onToggle={() => onToggleTask(task.id)}
-                />
-              )
-            })}
-          </div>
-        </GlassCard>
+        <TodayTasks subtitle={todayLine} compact />
       </div>
 
       <div className={styles.dayGrid}>

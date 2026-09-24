@@ -86,6 +86,34 @@ duplicate and limit checks in `addCustom` have nothing to check against yet.
 set. Adding an icon to the picker means adding a glyph to
 `frontend/src/components/Icon.tsx` first — the set is hand-drawn, not a library.
 
+## Day tasks — what the dashboard scores
+
+A day task is **a label, a task type and a day**, plus whether it is done. It
+is the unit the whole tracker counts: today's list is the tasks for today, and
+the habit grid and week view are the same rows read over a longer range.
+
+- **One store, both shapes.** There is no separate "ticked this type today"
+  record. A habit-grid cell is filled when a task of that type is done on that
+  day, so the list and the grid can never disagree. (The grid still reads mock
+  data — see the gaps below.)
+- **The type is one string to the client, two columns in the database.**
+  `typeId` is either a built-in's id (`deep`) or a custom type's id (`7`). The
+  server keeps them in `default_key` and `custom_type_id`, exactly one set, so
+  the custom half can be a real foreign key.
+- **Deleting a custom task type deletes the tasks logged against it**, and past
+  scores change with them. `ON DELETE CASCADE` says so in the schema, and
+  `TaskTypeService` does it too — the tests build their schema from the
+  entities, where that constraint does not exist. The page asks first.
+- **Labels are capped at 80 characters** (`DayTask.LABEL_MAX`), non-blank, and
+  not unique: doing the same thing twice in a day is not an error.
+- **Dates are `yyyy-mm-dd`**, from 2020 to a year ahead. Further either way is a
+  typo, not a plan. A read asks for a range and gets a year at most.
+- **`PATCH` with no body flips `done`.** The server decides the new value from
+  what it holds, so two devices cannot talk each other back into the old state.
+  Steps on a pursuit already work this way.
+- The list is **loaded for today only** so far. The endpoint takes a range
+  because the week and month views will widen it, not fetch their own way.
+
 ## Pursuits — savings and self-improvement
 
 A **pursuit** is anything worked towards over time. Two pages are built on the
@@ -273,22 +301,23 @@ reminders actually get delivered in-app.
 
 ## Known gaps
 
-- **Most of the frontend is not wired to the backend yet.** Sign-in, custom
-  task types and the account half of the profile are. Goals still live in
-  `PursuitsProvider` state, reminders and channels in `ProfileProvider`; both
-  vanish on reload and reset when another account signs in. Every consumer
-  reads through `useSavings()`, `useGrowth()`, `useDreams()` or
-  `useProfile()`, so only the providers need to change.
+- **Part of the frontend is not wired to the backend yet.** Sign-in, custom
+  task types, today's tasks and the account half of the profile are. Goals
+  still live in `PursuitsProvider` state, reminders and channels in
+  `ProfileProvider`; both vanish on reload and reset when another account signs
+  in. Every consumer reads through `useSavings()`, `useGrowth()`, `useDreams()`
+  or `useProfile()`, so only the providers need to change.
 - **No password reset or email verification.** Both need outgoing email.
   Apple and Google sign-in were removed from the auth screens until OAuth
   exists.
-- **Two lists are mirrored across the split** and have to stay in step:
-  `DEFAULT_TASK_TYPES`' labels and `CUSTOM_COLORS` (`TaskTypeDefaults` on the
-  server), and `DEFAULT_REMINDERS`' ids (`ReminderDefaults`). The server needs
-  the labels to enforce uniqueness against the defaults and the colours because
-  it assigns them; it needs the reminder ids because it stores the settings
-  those ids key. Everything else about them — icons, copy, groups — stays on
-  the client, which is the only place it is read.
+- **Three lists are mirrored across the split** and have to stay in step:
+  `DEFAULT_TASK_TYPES`' labels *and ids* (`TaskTypeDefaults.DEFAULT_LABELS` and
+  `DEFAULT_KEYS`), `CUSTOM_COLORS`, and `DEFAULT_REMINDERS`' ids
+  (`ReminderDefaults`). The server needs the labels to enforce uniqueness
+  against the defaults, the ids because a day task names its type with one, the
+  colours because it assigns them, and the reminder ids because it stores the
+  settings those ids key. Everything else about them — icons, copy, groups —
+  stays on the client, which is the only place it is read.
 - Every sidebar item now has a page. The navbar's bell, search and settings
   buttons are still inert on purpose rather than dead links.
 - **No `Content-Security-Policy` is set.** See the dreams section — the image
@@ -300,10 +329,12 @@ reminders actually get delivered in-app.
   shows step progress and time remaining only.
 - Steps are a flat list. Nothing nests, and nothing links a growth goal to the
   task type it belongs to.
-- Dashboard data is mocked and seeded (`frontend/src/lib/seeded.ts`) so it looks
-  lived-in and stays stable across reloads. `WEEK_TASK_POOL` has one row per
+- **The week and month views are still mocked and seeded**
+  (`frontend/src/lib/seeded.ts`) so they look lived-in and stay stable across
+  reloads; today's list is real. `useMonthData` keeps its cell toggles in local
+  state and `useWeekData` samples `WEEK_TASK_POOL`, which has one row per
   default type **in the same order** — keep them in step, `useWeekData` indexes
-  the pool to pick a type.
+  the pool to pick a type. Both read the same `/api/day-tasks` range next.
 - The Vision UI design system bundle the original artboard imported
   (`_ds/vision-ui-dashboard-design-system-aefacb…`) is not in this repo. Every
   component in `frontend/src/components/` was rebuilt from the artboard's inline styles.

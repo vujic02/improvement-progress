@@ -1,4 +1,5 @@
 import { CheckSquare } from './CheckSquare'
+import { IconButton } from './IconButton'
 import styles from './TaskRow.module.css'
 
 export interface TaskRowProps {
@@ -10,10 +11,12 @@ export interface TaskRowProps {
   /** Tighter padding and a single line — used in the narrow week column. */
   compact?: boolean
   onToggle?: () => void
+  /** Omit where a task cannot be deleted from; shows a trash button when set. */
+  onRemove?: () => void
 }
 
 /** One task line. Shared by the month list and the week list. */
-export function TaskRow({ label, type, color, done, compact, onToggle }: TaskRowProps) {
+export function TaskRow({ label, type, color, done, compact, onToggle, onRemove }: TaskRowProps) {
   return (
     <div className={[styles.row, compact ? styles.compact : ''].filter(Boolean).join(' ')}>
       <CheckSquare
@@ -30,6 +33,15 @@ export function TaskRow({ label, type, color, done, compact, onToggle }: TaskRow
         {type && !compact ? <span className={styles.type}>{type}</span> : null}
       </div>
       <span className={styles.dot} style={{ background: color }} />
+      {onRemove ? (
+        <IconButton
+          icon="trash"
+          label={`Delete ${label}`}
+          size={compact ? 15 : 16}
+          className={styles.remove}
+          onClick={onRemove}
+        />
+      ) : null}
     </div>
   )
 }

@@ -341,6 +341,8 @@ real `CORS_ORIGINS` setting.
 - [X] `SessionProvider` does real register/login/me/logout; refresh keeps you in (step 9)
 - [X] `TaskTypesProvider` loads and writes through the API (step 10)
 - [X] CI runs lint, the frontend build and the backend tests on every PR into `master` (`.github/workflows/ci.yml`)
+- [X] Day tasks: `day_tasks` table, `/api/day-tasks`, `DaysProvider`, today's list on the dashboard
+- [ ] Week and month views read real day tasks; `seeded.ts` and `WEEK_TASK_POOL` go
 - [ ] `PursuitsProvider` — savings first, then growth, then dreams (step 10)
 - [ ] `ProfileProvider` and reminders (step 10)
 - [ ] Every page handles loading and error, not just data (step 11)
