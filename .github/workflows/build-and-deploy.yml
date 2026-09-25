@@ -186,6 +186,11 @@ jobs:
           done
 
           echo "The new jar never answered in 60s. Rolling back."
+          # Keep the jar that failed and print why, so the next person does not
+          # have to SSH in to find out. The rollback would otherwise overwrite
+          # both the evidence and the reason.
+          cp -f "$JAR" "$JAR.failed" || true
+          journalctl -u "$SERVICE" -n 40 --no-pager || true
           if [ -f "$JAR.prev" ]; then
             mv -f "$JAR.prev" "$JAR"
             sudo systemctl restart "$SERVICE"
