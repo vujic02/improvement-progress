@@ -52,8 +52,7 @@ export function HabitGrid({ month }: HabitGridProps) {
                   color={cell.tint}
                   size={22}
                   stretch
-                  onToggle={cell.toggle}
-                  label={`${row.label}, day ${cell.day}`}
+                  label={`${row.label}, day ${cell.day}: ${cell.filled ? 'done' : 'not done'}`}
                 />
               </div>
             ))}

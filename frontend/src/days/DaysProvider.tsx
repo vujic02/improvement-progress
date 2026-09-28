@@ -6,8 +6,9 @@ import { DaysContext, type DayTask } from './context'
 
 /**
  * The day tracker's tasks, loaded from and saved through `/api/day-tasks`.
- * Today only for now — the endpoint takes a date range, so the week and month
- * views widen it rather than fetching their own way.
+ * One request covers every view: the habit grid needs this month, the week
+ * view needs the seven days around today, and that week can start in the
+ * month before — so the range is the union of the two.
  *
  * <p>App keys the account scope on the user, so signing into another account
  * starts empty and loads its own.
@@ -16,9 +17,22 @@ export function DaysProvider({ children }: { children: ReactNode }) {
   const { user } = useSession()
   const userId = user?.id
 
-  // The day this list is for. Fixed at mount: a session left open past
-  // midnight keeps showing the day its tasks belong to.
+  // Fixed at mount: a session left open past midnight keeps showing the day
+  // its tasks belong to, rather than silently sliding onto the next one.
   const today = useMemo(() => toDateInput(new Date()), [])
+
+  const range = useMemo(() => {
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    // Sunday-first, matching the week view.
+    const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay())
+    const weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6)
+    return {
+      from: toDateInput(monthStart < weekStart ? monthStart : weekStart),
+      to: toDateInput(monthEnd > weekEnd ? monthEnd : weekEnd),
+    }
+  }, [])
 
   const [tasks, setTasks] = useState<DayTask[]>([])
   // Signed out there is nothing to load, so loading starts false and stays there.
@@ -30,12 +44,12 @@ export function DaysProvider({ children }: { children: ReactNode }) {
     if (userId === undefined) return
     // A response for a load that has since been replaced must not land.
     let current = true
-    get<DayTask[]>(`/api/day-tasks?from=${today}&to=${today}`)
+    get<DayTask[]>(`/api/day-tasks?from=${range.from}&to=${range.to}`)
       .then((loaded) => {
         if (current) setTasks(loaded)
       })
       .catch((e: unknown) => {
-        if (current) setError(e instanceof Error ? e.message : 'Could not load today.')
+        if (current) setError(e instanceof Error ? e.message : 'Could not load your days.')
       })
       .finally(() => {
         if (current) setLoading(false)
@@ -43,7 +57,7 @@ export function DaysProvider({ children }: { children: ReactNode }) {
     return () => {
       current = false
     }
-  }, [userId, today, attempt])
+  }, [userId, range, attempt])
 
   const reload = useCallback(() => {
     setError(null)
@@ -91,8 +105,18 @@ export function DaysProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({ today: tasks, loading, error, reload, add, toggle, remove }),
-    [tasks, loading, error, reload, add, toggle, remove],
+    () => ({
+      tasks,
+      today: tasks.filter((task) => task.day === today),
+      range,
+      loading,
+      error,
+      reload,
+      add,
+      toggle,
+      remove,
+    }),
+    [tasks, today, range, loading, error, reload, add, toggle, remove],
   )
 
   return <DaysContext.Provider value={value}>{children}</DaysContext.Provider>

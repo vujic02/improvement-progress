@@ -1,12 +1,4 @@
-import {
-  Badge,
-  CheckSquare,
-  DonutProgress,
-  Eyebrow,
-  GlassCard,
-  MetricRow,
-  SectionHeading,
-} from '../../components'
+import { Badge, CheckSquare, DonutProgress, Eyebrow, GlassCard, SectionHeading } from '../../components'
 import type { WeekData } from '../../data/useWeekData'
 import { TodayTasks } from './TodayTasks'
 import styles from './views.module.css'
@@ -71,17 +63,23 @@ export function WeekView({ week, todayLine }: WeekViewProps) {
 
             <div className={styles.daySection}>
               <Eyebrow>Tasks</Eyebrow>
-              {day.items.map((item) => (
-                <div key={item.key} className={styles.dayTask}>
-                  <CheckSquare
-                    checked={item.done}
-                    color={item.color}
-                    size={14}
-                    muted={day.future}
-                  />
-                  <span className={styles.dayTaskLabel}>{item.label}</span>
-                </div>
-              ))}
+              {day.items.length ? (
+                day.items.map((item) => (
+                  <div key={item.key} className={styles.dayTask}>
+                    <CheckSquare
+                      checked={item.done}
+                      color={item.color}
+                      size={14}
+                      muted={day.future}
+                    />
+                    <span className={styles.dayTaskLabel}>{item.label}</span>
+                  </div>
+                ))
+              ) : (
+                <span className={styles.dayEmpty}>
+                  {day.future ? 'Nothing planned' : 'Nothing logged'}
+                </span>
+              )}
             </div>
 
             <div className={styles.dayTally}>
@@ -89,13 +87,6 @@ export function WeekView({ week, todayLine }: WeekViewProps) {
               <span className={styles.tallyOpen}>
                 {day.items.length - day.doneCount} not completed
               </span>
-            </div>
-
-            <div className={styles.daySection} style={{ gap: 6 }}>
-              <Eyebrow>Mindset</Eyebrow>
-              <MetricRow label="Energy" value={day.energy} />
-              <MetricRow label="Focus" value={day.focus} />
-              <MetricRow label="Motivation" value={day.motivation} />
             </div>
           </GlassCard>
         ))}

@@ -243,6 +243,12 @@
   text-wrap: pretty;
 }
 
+.dayEmpty {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-faint);
+}
+
 .dayTally {
   width: 100%;
   display: flex;

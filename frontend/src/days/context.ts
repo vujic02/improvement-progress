@@ -10,9 +10,19 @@ export interface DayTask {
   done: boolean
 }
 
+/** The span of days held in the store, as yyyy-mm-dd. */
+export interface DayRange {
+  from: string
+  to: string
+}
+
 export interface DaysStore {
-  /** Today's tasks, oldest first. The week and month ranges come later. */
+  /** Every task in `range`, oldest first — what the week and month views read. */
+  tasks: DayTask[]
+  /** Today's tasks, oldest first. */
   today: DayTask[]
+  /** The span loaded: this month, widened to cover the whole current week. */
+  range: DayRange
   /** True while the day is being fetched. */
   loading: boolean
   /** Why the fetch failed, or null. */
