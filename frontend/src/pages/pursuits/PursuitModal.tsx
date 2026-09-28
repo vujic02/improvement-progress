@@ -16,7 +16,7 @@ export interface PursuitModalProps {
   open: boolean
   area: PursuitArea
   onClose: () => void
-  onCreate: (pursuit: NewPursuit) => Result
+  onCreate: (pursuit: NewPursuit) => Promise<Result>
 }
 
 function defaultTarget(from: Date): string {
@@ -37,6 +37,8 @@ function PursuitForm({ area, onClose, onCreate }: Omit<PursuitModalProps, 'open'
   const [createdAt, setCreatedAt] = useState(() => toDateInput(new Date()))
   const [targetAt, setTargetAt] = useState(() => defaultTarget(new Date()))
   const [error, setError] = useState<string | null>(null)
+  // A create in flight — a second press would send a duplicate the server rejects.
+  const [saving, setSaving] = useState(false)
 
   const start = parseDateInput(createdAt)
   const target = parseDateInput(targetAt)
@@ -49,19 +51,22 @@ function PursuitForm({ area, onClose, onCreate }: Omit<PursuitModalProps, 'open'
       ? targetAmount - (Number.isFinite(savedAmount ?? 0) ? (savedAmount ?? 0) : 0)
       : null
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (saving) return
     if (area.money && (Number.isNaN(targetAmount) || Number.isNaN(savedAmount))) {
       setError('Amounts have to be numbers.')
       return
     }
-    const result = onCreate({
+    setSaving(true)
+    const result = await onCreate({
       name,
       kind,
       createdAt,
       targetAt,
       ...(area.money ? { target: targetAmount ?? undefined, saved: savedAmount ?? undefined } : null),
     })
+    setSaving(false)
     if (result.ok) onClose()
     else setError(result.reason)
   }
@@ -195,8 +200,8 @@ function PursuitForm({ area, onClose, onCreate }: Omit<PursuitModalProps, 'open'
       ) : null}
 
       <div className={styles.actions}>
-        <Button type="submit" size="md">
-          Create goal
+        <Button type="submit" size="md" disabled={saving}>
+          {saving ? 'Creating…' : 'Create goal'}
         </Button>
         <Button type="button" variant="subtle" size="md" onClick={onClose}>
           Cancel

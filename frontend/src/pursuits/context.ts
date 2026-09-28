@@ -1,8 +1,12 @@
 import { useContext, type Context } from 'react'
 import type { IconName } from '../components/Icon'
 import type { Pursuit } from '../data/pursuits'
+import type { Result } from '../session/context'
 
-export type Result = { ok: true } | { ok: false; reason: string }
+export type { Result }
+
+/** Which page a store serves. Sent to `/api/pursuits` as `?area=`. */
+export type PursuitAreaId = 'savings' | 'growth' | 'dreams'
 
 export interface NewPursuit {
   name: string
@@ -21,28 +25,34 @@ export interface NewPursuit {
 export interface PursuitStore {
   /** Newest first — the order the grid renders in. */
   pursuits: Pursuit[]
+  /** True while the area's pursuits are being fetched. */
+  loading: boolean
+  /** Why the fetch failed, or null. */
+  error: string | null
+  /** Clears the error and fetches again. */
+  reload: () => void
   /**
    * Rejects blank/long/duplicate names, a target before the start date, and an
-   * image address that is not https.
+   * image address that is not https — here first, then again on the server.
    */
-  add: (pursuit: NewPursuit) => Result
-  remove: (id: string) => void
+  add: (pursuit: NewPursuit) => Promise<Result>
+  remove: (id: string) => Promise<Result>
   /** Rejects blank, long and duplicate steps within the same pursuit. */
-  addStep: (pursuitId: string, label: string) => Result
-  toggleStep: (pursuitId: string, stepId: string) => void
-  removeStep: (pursuitId: string, stepId: string) => void
+  addStep: (pursuitId: string, label: string) => Promise<Result>
+  toggleStep: (pursuitId: string, stepId: string) => Promise<Result>
+  removeStep: (pursuitId: string, stepId: string) => Promise<Result>
   /**
    * Moves money in or out of a pursuit's balance. Positive adds, negative
    * corrects a mistake; the balance is clamped at zero either way.
    */
-  contribute: (pursuitId: string, amount: number) => Result
+  contribute: (pursuitId: string, amount: number) => Promise<Result>
 }
 
 export type PursuitContext = Context<PursuitStore | null>
 
 /**
  * Reads whichever pursuit context is passed in. Each area owns its own context
- * object so the two lists never see each other; `<PursuitsProvider>` fills it.
+ * object so the lists never see each other; `<PursuitsProvider>` fills it.
  */
 export function usePursuitStore(context: PursuitContext, hookName: string): PursuitStore {
   const ctx = useContext(context)

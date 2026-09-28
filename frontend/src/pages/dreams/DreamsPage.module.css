@@ -151,3 +151,26 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Loading and load-failed, in place of the grid. */
+.state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 20px 22px;
+}
+
+.stateText {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.stateError {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--accent-pink);
+  text-wrap: pretty;
+}

@@ -23,12 +23,12 @@ import styles from './PursuitCard.module.css'
 export interface PursuitCardProps {
   pursuit: Pursuit
   area: PursuitArea
-  onRemove: () => void
+  onRemove: () => Promise<Result>
   /** Money areas only. Adds to the balance; negatives correct a mistake. */
-  onContribute?: (amount: number) => Result
-  onAddStep: (label: string) => Result
-  onToggleStep: (stepId: string) => void
-  onRemoveStep: (stepId: string) => void
+  onContribute?: (amount: number) => Promise<Result>
+  onAddStep: (label: string) => Promise<Result>
+  onToggleStep: (stepId: string) => Promise<Result>
+  onRemoveStep: (stepId: string) => Promise<Result>
 }
 
 /** How much time is left, in the words the card actually shows. */
@@ -54,6 +54,20 @@ export function PursuitCard({
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [amount, setAmount] = useState('')
+  // One write at a time per card: a second click while the first is in flight
+  // would race it, and a double-sent step or contribution is a real duplicate.
+  const [busy, setBusy] = useState(false)
+
+  /** Runs one write, holding the card busy and surfacing its failure. */
+  const run = async (action: () => Promise<Result>): Promise<boolean> => {
+    if (busy) return false
+    setBusy(true)
+    setError(null)
+    const result = await action()
+    setBusy(false)
+    if (!result.ok) setError(result.reason)
+    return result.ok
+  }
 
   const meta = kindMeta(area, pursuit.kind)
   const done = pursuit.steps.filter((s) => s.done).length
@@ -76,15 +90,9 @@ export function PursuitCard({
   const start = parseDateInput(pursuit.createdAt)
   const target = parseDateInput(pursuit.targetAt)
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const result = onAddStep(draft)
-    if (result.ok) {
-      setDraft('')
-      setError(null)
-    } else {
-      setError(result.reason)
-    }
+    if (await run(() => onAddStep(draft))) setDraft('')
   }
 
   return (
@@ -103,7 +111,8 @@ export function PursuitCard({
           label={`Remove ${pursuit.name}`}
           size={18}
           className={styles.remove}
-          onClick={onRemove}
+          disabled={busy}
+          onClick={() => void run(onRemove)}
         />
       </div>
 
@@ -134,19 +143,14 @@ export function PursuitCard({
       {money && onContribute ? (
         <form
           className={styles.contribute}
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault()
             const value = parseAmount(amount)
-            const result =
-              value === null || Number.isNaN(value)
-                ? ({ ok: false, reason: 'Enter an amount.' } as const)
-                : onContribute(value)
-            if (result.ok) {
-              setAmount('')
-              setError(null)
-            } else {
-              setError(result.reason)
+            if (value === null || Number.isNaN(value)) {
+              setError('Enter an amount.')
+              return
             }
+            if (await run(() => onContribute(value))) setAmount('')
           }}
         >
           <span className={styles.currency} aria-hidden="true">
@@ -171,7 +175,7 @@ export function PursuitCard({
             size={18}
             className={styles.contributeButton}
             type="submit"
-            disabled={!amount.trim()}
+            disabled={busy || !amount.trim()}
           />
         </form>
       ) : null}
@@ -197,7 +201,7 @@ export function PursuitCard({
                   checked={step.done}
                   color={meta.color}
                   size={18}
-                  onToggle={() => onToggleStep(step.id)}
+                  onToggle={() => void run(() => onToggleStep(step.id))}
                   label={step.label}
                 />
                 <span
@@ -212,7 +216,8 @@ export function PursuitCard({
                   label={`Remove ${step.label}`}
                   size={14}
                   className={styles.stepRemove}
-                  onClick={() => onRemoveStep(step.id)}
+                  disabled={busy}
+                  onClick={() => void run(() => onRemoveStep(step.id))}
                 />
               </div>
             ))
@@ -241,7 +246,7 @@ export function PursuitCard({
             size={18}
             className={styles.addButton}
             type="submit"
-            disabled={!draft.trim()}
+            disabled={busy || !draft.trim()}
           />
         </form>
       ) : null}

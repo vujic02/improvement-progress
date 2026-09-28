@@ -15,10 +15,10 @@ import styles from './DreamCard.module.css'
 
 export interface DreamCardProps {
   dream: Pursuit
-  onRemove: () => void
-  onAddStep: (label: string) => Result
-  onToggleStep: (stepId: string) => void
-  onRemoveStep: (stepId: string) => void
+  onRemove: () => Promise<Result>
+  onAddStep: (label: string) => Promise<Result>
+  onToggleStep: (stepId: string) => Promise<Result>
+  onRemoveStep: (stepId: string) => Promise<Result>
 }
 
 /** How much time is left, in the words the card actually shows. */
@@ -46,6 +46,20 @@ export function DreamCard({
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [brokenImage, setBrokenImage] = useState(false)
+  // One write at a time per card: a second click while the first is in flight
+  // would race it, and a double-sent step is a real duplicate.
+  const [busy, setBusy] = useState(false)
+
+  /** Runs one write, holding the card busy and surfacing its failure. */
+  const run = async (action: () => Promise<Result>): Promise<boolean> => {
+    if (busy) return false
+    setBusy(true)
+    setError(null)
+    const result = await action()
+    setBusy(false)
+    if (!result.ok) setError(result.reason)
+    return result.ok
+  }
 
   const done = dream.steps.filter((s) => s.done).length
   const total = dream.steps.length
@@ -57,15 +71,9 @@ export function DreamCard({
   const icon = dream.icon ?? 'star'
   const showImage = Boolean(dream.image) && !brokenImage
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const result = onAddStep(draft)
-    if (result.ok) {
-      setDraft('')
-      setError(null)
-    } else {
-      setError(result.reason)
-    }
+    if (await run(() => onAddStep(draft))) setDraft('')
   }
 
   return (
@@ -101,7 +109,8 @@ export function DreamCard({
           label={`Remove ${dream.name}`}
           size={18}
           className={styles.remove}
-          onClick={onRemove}
+          disabled={busy}
+          onClick={() => void run(onRemove)}
         />
 
         <span className={styles.name}>{dream.name}</span>
@@ -142,7 +151,7 @@ export function DreamCard({
                   checked={step.done}
                   color={DREAM_COLOR}
                   size={18}
-                  onToggle={() => onToggleStep(step.id)}
+                  onToggle={() => void run(() => onToggleStep(step.id))}
                   label={step.label}
                 />
                 <span
@@ -157,7 +166,8 @@ export function DreamCard({
                   label={`Remove ${step.label}`}
                   size={14}
                   className={styles.stepRemove}
-                  onClick={() => onRemoveStep(step.id)}
+                  disabled={busy}
+                  onClick={() => void run(() => onRemoveStep(step.id))}
                 />
               </div>
             ))
@@ -186,7 +196,7 @@ export function DreamCard({
             size={18}
             className={styles.addButton}
             type="submit"
-            disabled={!draft.trim()}
+            disabled={busy || !draft.trim()}
           />
         </form>
 

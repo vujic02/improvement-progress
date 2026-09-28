@@ -147,8 +147,22 @@ another copy of the card and grid.** The area config carries the page copy as
 well as the kinds, so the two pages read differently without branching.
 
 State: one `PursuitsProvider` component, mounted once per area with that area's
-own context object (`SavingsContext`, `GrowthContext`), so the two lists never
-see each other. `useSavings()` and `useGrowth()` are one-line wrappers.
+own context object (`SavingsContext`, `GrowthContext`, `DreamsContext`) and its
+`area` prop, so the lists never see each other. `useSavings()`, `useGrowth()`
+and `useDreams()` are one-line wrappers.
+
+- **Each provider loads and saves through `/api/pursuits?area=`.** Writes wait
+  for the server and apply what it returns — a contribution comes back with
+  the clamped balance, a toggled step with the state the server settled on —
+  rather than guessing locally.
+- **Every action returns `Promise<Result>`.** The provider runs the cheap
+  checks first so a typo gets an instant answer; the server repeats all of
+  them and has the final word.
+- **A card runs one write at a time.** While one is in flight its buttons are
+  disabled, so a double click cannot send a step or a contribution twice.
+- **The empty screen waits for the load.** Until the list arrives, "nothing
+  yet" is a guess, so the page shows a loading line — or the error with a
+  retry — instead of the welcome.
 
 **Rules:**
 
@@ -317,11 +331,10 @@ reminders actually get delivered in-app.
 ## Known gaps
 
 - **Part of the frontend is not wired to the backend yet.** Sign-in, custom
-  task types, today's tasks and the account half of the profile are. Goals
-  still live in `PursuitsProvider` state, reminders and channels in
-  `ProfileProvider`; both vanish on reload and reset when another account signs
-  in. Every consumer reads through `useSavings()`, `useGrowth()`, `useDreams()`
-  or `useProfile()`, so only the providers need to change.
+  task types, day tasks, goals and the account half of the profile are. Goals
+  are too. Reminders and channels still live in `ProfileProvider` state; they
+  vanish on reload and reset when another account signs in. Every consumer
+  reads through `useProfile()`, so only the provider needs to change.
 - **No password reset or email verification.** Both need outgoing email.
   Apple and Google sign-in were removed from the auth screens until OAuth
   exists.

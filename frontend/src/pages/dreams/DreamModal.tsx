@@ -13,7 +13,7 @@ import styles from './DreamModal.module.css'
 export interface DreamModalProps {
   open: boolean
   onClose: () => void
-  onCreate: (dream: NewPursuit) => Result
+  onCreate: (dream: NewPursuit) => Promise<Result>
 }
 
 /** Dreams sit further out than a savings goal, so they start a year ahead. */
@@ -36,6 +36,8 @@ function DreamForm({ onClose, onCreate }: Omit<DreamModalProps, 'open'>) {
   const [createdAt, setCreatedAt] = useState(() => toDateInput(new Date()))
   const [targetAt, setTargetAt] = useState(() => defaultTarget(new Date()))
   const [error, setError] = useState<string | null>(null)
+  // A create in flight — a second press would send a duplicate the server rejects.
+  const [saving, setSaving] = useState(false)
   const [brokenImage, setBrokenImage] = useState(false)
 
   const start = parseDateInput(createdAt)
@@ -46,9 +48,12 @@ function DreamForm({ onClose, onCreate }: Omit<DreamModalProps, 'open'>) {
   const safe = typedImage ? safeImageUrl(typedImage) : null
   const showPreview = Boolean(safe) && !brokenImage
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const result = onCreate({ name, icon, image, createdAt, targetAt })
+    if (saving) return
+    setSaving(true)
+    const result = await onCreate({ name, icon, image, createdAt, targetAt })
+    setSaving(false)
     if (result.ok) onClose()
     else setError(result.reason)
   }
@@ -154,8 +159,8 @@ function DreamForm({ onClose, onCreate }: Omit<DreamModalProps, 'open'>) {
       ) : null}
 
       <div className={styles.actions}>
-        <Button type="submit" size="md">
-          Create dream
+        <Button type="submit" size="md" disabled={saving}>
+          {saving ? 'Creating…' : 'Create dream'}
         </Button>
         <Button type="button" variant="subtle" size="md" onClick={onClose}>
           Cancel

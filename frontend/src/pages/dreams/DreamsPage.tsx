@@ -22,7 +22,17 @@ import styles from './DreamsPage.module.css'
  * filter strip is gone and the cards lead with a picture instead of a tint.
  */
 export function DreamsPage() {
-  const { pursuits: dreams, add, remove, addStep, toggleStep, removeStep } = useDreams()
+  const {
+    pursuits: dreams,
+    loading,
+    error,
+    reload,
+    add,
+    remove,
+    addStep,
+    toggleStep,
+    removeStep,
+  } = useDreams()
   const [creating, setCreating] = useState(false)
 
   const stats = useMemo(() => {
@@ -41,7 +51,10 @@ export function DreamsPage() {
     }
   }, [dreams])
 
-  const empty = dreams.length === 0
+  // Until the list has loaded, "nothing yet" is a guess — the empty screen
+  // would flash its welcome at someone with a dozen dreams.
+  const settled = !loading && !error
+  const empty = settled && dreams.length === 0
 
   return (
     <DashboardLayout
@@ -56,7 +69,7 @@ export function DreamsPage() {
             one, and the steps between you and it.
           </span>
         </div>
-        {!empty ? (
+        {settled && !empty ? (
           <Button size="md" onClick={() => setCreating(true)}>
             <Icon name="plus" size={16} />
             New dream
@@ -64,7 +77,23 @@ export function DreamsPage() {
         ) : null}
       </div>
 
-      {empty ? (
+      {!settled ? (
+        /* ---- loading / failed ---- */
+        <GlassCard tone="b" className={styles.state}>
+          {loading ? (
+            <span className={styles.stateText}>Loading your dreams…</span>
+          ) : (
+            <>
+              <span className={styles.stateError} role="alert">
+                Couldn't load your dreams. {error}
+              </span>
+              <Button size="sm" onClick={reload}>
+                Try again
+              </Button>
+            </>
+          )}
+        </GlassCard>
+      ) : empty ? (
         /* ---- empty state ---- */
         <GlassCard tone="b" className={styles.empty} padding="52px 32px 44px">
           <span className={styles.emptyGlow} aria-hidden="true" />

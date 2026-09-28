@@ -35,10 +35,18 @@ export interface PursuitPageProps {
  * Everything that differs between money and growth comes in through `area`.
  */
 export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
-  const { pursuits, add, remove, addStep, toggleStep, removeStep, contribute } = usePursuitStore(
-    context,
-    hookName,
-  )
+  const {
+    pursuits,
+    loading,
+    error,
+    reload,
+    add,
+    remove,
+    addStep,
+    toggleStep,
+    removeStep,
+    contribute,
+  } = usePursuitStore(context, hookName)
 
   const [creating, setCreating] = useState(false)
   const [filter, setFilter] = useState<string>('all')
@@ -86,7 +94,10 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
   )
 
   const shown = filter === 'all' ? pursuits : pursuits.filter((p) => p.kind === filter)
-  const empty = pursuits.length === 0
+  // Until the list has loaded, "nothing yet" is a guess — the empty screen
+  // would flash its welcome at someone with twenty goals.
+  const settled = !loading && !error
+  const empty = settled && pursuits.length === 0
 
   return (
     <DashboardLayout activeId={area.navId} trail={[APP_NAME, area.title]}>
@@ -95,7 +106,7 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
           <span className={styles.title}>{area.title}</span>
           <span className={styles.blurb}>{area.blurb}</span>
         </div>
-        {!empty ? (
+        {settled && !empty ? (
           <Button size="md" onClick={() => setCreating(true)}>
             <Icon name="plus" size={16} />
             {area.newLabel}
@@ -103,7 +114,23 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
         ) : null}
       </div>
 
-      {empty ? (
+      {!settled ? (
+        /* ---- loading / failed ---- */
+        <GlassCard tone="b" className={styles.filterEmpty}>
+          {loading ? (
+            <span className={styles.filterEmptyText}>Loading your goals…</span>
+          ) : (
+            <>
+              <span className={styles.stateError} role="alert">
+                Couldn't load your goals. {error}
+              </span>
+              <Button size="sm" onClick={reload}>
+                Try again
+              </Button>
+            </>
+          )}
+        </GlassCard>
+      ) : empty ? (
         /* ---- empty state ---- */
         <GlassCard tone="b" className={styles.empty} padding="52px 32px 44px">
           <span className={styles.emptyGlow} aria-hidden="true" />
