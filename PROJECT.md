@@ -111,8 +111,23 @@ the habit grid and week view are the same rows read over a longer range.
 - **`PATCH` with no body flips `done`.** The server decides the new value from
   what it holds, so two devices cannot talk each other back into the old state.
   Steps on a pursuit already work this way.
-- The list is **loaded for today only** so far. The endpoint takes a range
-  because the week and month views will widen it, not fetch their own way.
+- **One request feeds every view.** `DaysProvider` loads this month widened to
+  cover the whole current week — that week can start in the month before — and
+  the habit grid, the week cards and today's list all read from it. No view
+  fetches on its own.
+- **The grid's rows are the types the month actually used**, not all 22 on
+  offer. A type never logged is not a habit being failed at, and rows of empty
+  squares say nothing. A type logged but never completed still gets a row — it
+  was attempted. With nothing logged at all the month view drops the grid card
+  entirely rather than frame an empty grid, and the analysis card says so.
+- **The habit grid is read-only.** A cell shows whether a task of that type is
+  done that day; logging happens in today's list. Ticking a cell would have to
+  invent a task to represent, and unticking one would have to guess which task
+  the user meant when a day holds several of that type.
+- **The streak counts back from today** over days with at least one task done.
+  An untouched today does not break it — the run is standing, not ended. Only
+  the loaded range can be counted, so a longer run reads `12+` rather than a
+  number the data cannot back up.
 
 ## Pursuits — savings and self-improvement
 
@@ -329,12 +344,15 @@ reminders actually get delivered in-app.
   shows step progress and time remaining only.
 - Steps are a flat list. Nothing nests, and nothing links a growth goal to the
   task type it belongs to.
-- **The week and month views are still mocked and seeded**
-  (`frontend/src/lib/seeded.ts`) so they look lived-in and stay stable across
-  reloads; today's list is real. `useMonthData` keeps its cell toggles in local
-  state and `useWeekData` samples `WEEK_TASK_POOL`, which has one row per
-  default type **in the same order** — keep them in step, `useWeekData` indexes
-  the pool to pick a type. Both read the same `/api/day-tasks` range next.
+- **The whole dashboard now reads the API.** `useMonthData` and `useWeekData`
+  are pure functions of the tasks `DaysProvider` holds, and the mock seed data
+  is gone. `frontend/src/lib/seeded.ts` survives for the welcome screen's
+  waveform only. A new account therefore sees an empty grid and empty week
+  cards, which is correct and looks emptier than the old screenshots.
+- **Nothing tracks mood.** The week cards used to show Energy, Focus and
+  Motivation from seeded noise; they are gone rather than faked. A daily
+  check-in — rating those per day and storing them — is a feature of its own.
+  `MetricRow` is kept, unused, for when it lands.
 - The Vision UI design system bundle the original artboard imported
   (`_ds/vision-ui-dashboard-design-system-aefacb…`) is not in this repo. Every
   component in `frontend/src/components/` was rebuilt from the artboard's inline styles.

@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from 'react'
-import { DAY_LETTERS } from '../lib/date'
-import { seeded } from '../lib/seeded'
+import { useMemo } from 'react'
+import type { DayTask } from '../days/context'
+import { DAY_LETTERS, toDateInput } from '../lib/date'
 import { WEEK_TINTS, type TaskType } from './taskTypes'
 import type { IconName } from '../components/Icon'
 
@@ -31,7 +31,6 @@ export interface HabitCell {
   filled: boolean
   future: boolean
   tint: string
-  toggle: () => void
 }
 
 export interface HabitRow {
@@ -55,32 +54,41 @@ export interface MonthData {
 }
 
 /**
- * Builds the habit grid for `now`'s month, one row per task type. Cells default
- * to a seeded value so the grid looks lived-in; user toggles are held in local
- * state and win.
+ * The habit grid for `now`'s month, built from the tasks the store holds.
+ *
+ * <p>A cell is filled when a task of that type is done on that day — there is
+ * no separate tick, so the grid and the day's list can never disagree. Cells
+ * are read-only; logging happens in today's list.
+ *
+ * <p>**Rows are the types this month actually used**, not all 22 available. A
+ * type you have never logged is not a habit you are failing at, and a grid of
+ * mostly empty rows says nothing. `rows` is empty until something is logged,
+ * and the page drops the whole section rather than show an empty frame.
  */
-export function useMonthData(now: Date, types: TaskType[]): MonthData {
-  const [checks, setChecks] = useState<Record<string, boolean>>({})
-
-  const isChecked = useCallback(
-    (typeIdx: number, day: number, today: number) => {
-      const key = `${typeIdx}-${day}`
-      if (checks[key] !== undefined) return checks[key]
-      return day <= today && seeded(typeIdx + 1, day) > 0.36
-    },
-    [checks],
-  )
-
-  const toggle = useCallback((typeIdx: number, day: number, current: boolean) => {
-    setChecks((prev) => ({ ...prev, [`${typeIdx}-${day}`]: !current }))
-  }, [])
-
+export function useMonthData(now: Date, types: TaskType[], tasks: DayTask[]): MonthData {
   return useMemo(() => {
     const today = now.getDate()
     const year = now.getFullYear()
     const month = now.getMonth()
     const daysInMonth = new Date(year, month + 1, 0).getDate()
     const firstWeekday = new Date(year, month, 1).getDay()
+
+    // The store holds the current week too, which can reach into last month.
+    const from = toDateInput(new Date(year, month, 1))
+    const to = toDateInput(new Date(year, month, daysInMonth))
+    const inMonth = tasks.filter((task) => task.day >= from && task.day <= to)
+
+    // "type|yyyy-mm-dd" for every type done that day. One pass, then the grid
+    // is a lookup per cell rather than a scan of every task.
+    const done = new Set(
+      inMonth.filter((task) => task.done).map((task) => `${task.typeId}|${task.day}`),
+    )
+    const isDone = (typeId: string, day: number) =>
+      done.has(`${typeId}|${toDateInput(new Date(year, month, day))}`)
+
+    // Logged at all, done or not: a type you tried and missed is still a row.
+    const logged = new Set(inMonth.map((task) => task.typeId))
+    const used = types.filter((type) => logged.has(type.id))
 
     const days: MonthDay[] = []
     for (let d = 1; d <= daysInMonth; d++) {
@@ -113,20 +121,16 @@ export function useMonthData(now: Date, types: TaskType[]): MonthData {
       weeks[day.weekIdx].span += 1
     }
 
-    const rows: HabitRow[] = types.map((type, ti) => {
-      const cells: HabitCell[] = days.map((day) => {
-        const filled = isChecked(ti, day.d, today)
-        return {
-          key: `${ti}-${day.d}`,
-          day: day.d,
-          filled,
-          future: day.future,
-          tint: day.tint,
-          toggle: () => toggle(ti, day.d, filled),
-        }
-      })
+    const rows: HabitRow[] = used.map((type) => {
+      const cells: HabitCell[] = days.map((day) => ({
+        key: `${type.id}-${day.d}`,
+        day: day.d,
+        filled: isDone(type.id, day.d),
+        future: day.future,
+        tint: day.tint,
+      }))
       const elapsed = days.filter((x) => !x.future).length
-      const hit = days.filter((x) => !x.future && isChecked(ti, x.d, today)).length
+      const hit = days.filter((x) => !x.future && isDone(type.id, x.d)).length
       return {
         id: type.id,
         label: type.label,
@@ -140,8 +144,10 @@ export function useMonthData(now: Date, types: TaskType[]): MonthData {
     })
 
     for (const day of days) {
-      const hits = types.filter((_, ti) => isChecked(ti, day.d, today)).length
-      const pct = day.future ? 0 : Math.round((hits / Math.max(1, types.length)) * 100)
+      // A day scores on how many of the month's habits it touched, not how many
+      // tasks: four runs is one habit kept, not four.
+      const hits = used.filter((type) => isDone(type.id, day.d)).length
+      const pct = day.future ? 0 : Math.round((hits / Math.max(1, used.length)) * 100)
       day.numColor = day.isToday
         ? 'var(--accent)'
         : day.future
@@ -161,5 +167,5 @@ export function useMonthData(now: Date, types: TaskType[]): MonthData {
       monthPct: Math.round((allHit / Math.max(1, allElapsed)) * 100),
       gridCols: `196px repeat(${days.length}, minmax(0, 1fr))`,
     }
-  }, [now, types, isChecked, toggle])
+  }, [now, types, tasks])
 }

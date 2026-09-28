@@ -342,7 +342,7 @@ real `CORS_ORIGINS` setting.
 - [X] `TaskTypesProvider` loads and writes through the API (step 10)
 - [X] CI runs lint, the frontend build and the backend tests on every PR into `master` (`.github/workflows/ci.yml`)
 - [X] Day tasks: `day_tasks` table, `/api/day-tasks`, `DaysProvider`, today's list on the dashboard
-- [ ] Week and month views read real day tasks; `seeded.ts` and `WEEK_TASK_POOL` go
+- [X] Week and month views read real day tasks; the dashboard mock data is gone
 - [ ] `PursuitsProvider` — savings first, then growth, then dreams (step 10)
 - [ ] `ProfileProvider` and reminders (step 10)
 - [ ] Every page handles loading and error, not just data (step 11)
@@ -363,3 +363,59 @@ real `CORS_ORIGINS` setting.
    - `500` — backend bug. Read the stack trace, stop guessing on the frontend.
 4. **`curl` the same call.** Works in `curl`, fails in the browser → frontend
    problem. Fails in both → backend problem.
+
+## 15. What to build next, and why
+
+The wiring is nearly done; these are features. One branch each, named here.
+
+### `feature/recurring-tasks` — the one that decides whether this gets used
+
+Every day starts as a blank list, so tracking costs five minutes of typing
+before you have done anything. Nobody keeps that up. A "my usual day" set —
+pick the types and labels once, have them appear each morning as unticked
+tasks — turns the daily cost into ticking boxes. It also makes the habit grid
+mean something: a missed day becomes a visible gap rather than an absence of
+data.
+
+### `feature/day-history` — see the past, and fix it
+
+The dashboard is hard-wired to this month and this week, and today's list is
+today only. So September is unreachable, and a Tuesday you forgot to log is
+gone for good. Month arrows on the grid, plus a date on the add form. The API
+already accepts any date in range, so this is frontend work.
+
+### `feature/insights` — say something the user did not type
+
+Everything on the dashboard is a mirror of what was entered. The interesting
+version notices things: "reading, three weeks strong", "gym 12 times in
+September, 4 so far in October". Small amount of code over data that already
+exists, and it is the difference between a tracker and something worth opening.
+
+### `chore/frontend-tests` — cover the logic that just appeared
+
+There are no frontend tests. `useMonthData`, `useWeekData` and `countStreak`
+now hold real logic with real edge cases: month boundaries, a week spanning two
+months, an untouched today, a type logged but never completed. They are pure
+functions, so Vitest covers them in an afternoon, and CI already has somewhere
+to run them.
+
+### `chore/vps-hardening` — the loose ends that bite at the worst time
+
+Caddy is not under systemd, so a reboot leaves the API up and the site down.
+The Caddyfile — including the `/api` proxy rule the whole frontend depends on —
+exists only on that box and is in no repo. And the only database backup is the
+one taken by hand before the V3 migration; a nightly `mysqldump` with a few
+days of retention is a cron line.
+
+### Smaller, whenever
+
+- `feature/edit-pursuits` — a pursuit cannot be changed after it is created;
+  the backend has no `PATCH /api/pursuits/{id}`.
+- `feature/navbar-actions` — the bell, search and settings buttons are still
+  decorative.
+- The `NotificationCard` built for reminders has nowhere to render until
+  something actually delivers one. That is the reminder-delivery feature, which
+  needs outgoing email first.
+
+**If only one gets built: `feature/recurring-tasks`.** The rest is polish on a
+tracker that is currently too expensive to use daily.

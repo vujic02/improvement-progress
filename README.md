@@ -233,8 +233,9 @@ Sign-in, task types and today's tasks are wired: `SessionProvider`,
 and the rest of `ProfileProvider` (reminders, channels) still hold everything
 in `useState`, reset whenever a different account signs in.
 
-The dashboard's week and month views are still seeded mock data; only today's
-list is real. They read the same `/api/day-tasks` range next.
+The dashboard is fully wired: today's list, the week cards and the habit grid
+all read one `/api/day-tasks` range. The grid is read-only — it reports what
+the day's tasks say; logging happens in today's list.
 
 Not built: password reset and email verification (both need outgoing email),
 and Apple/Google sign-in, whose buttons were removed until OAuth exists.

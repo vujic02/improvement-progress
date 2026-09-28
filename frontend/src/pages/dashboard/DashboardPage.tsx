@@ -3,8 +3,9 @@ import { CategoryCard, SegmentedToggle, StatCard, type IconName } from '../../co
 import { useDays } from '../../days/context'
 import { useMonthData } from '../../data/useMonthData'
 import { useWeekData } from '../../data/useWeekData'
+import type { DayTask } from '../../days/context'
 import { APP_NAME } from '../../lib/brand'
-import { DAY_NAMES, monthTitle } from '../../lib/date'
+import { DAY_NAMES, monthTitle, toDateInput } from '../../lib/date'
 import { navigate, type Route } from '../../router'
 import { useTaskTypes } from '../../taskTypes/context'
 import { DashboardLayout } from './DashboardLayout'
@@ -60,18 +61,41 @@ const CATEGORIES: Category[] = [
   },
 ]
 
+/**
+ * Days in a row, counting back from today, with at least one task done. Today
+ * not being finished yet does not break the run, so an untouched today counts
+ * as the streak standing rather than ending.
+ *
+ * The store only holds this month and this week, so a longer run is reported
+ * as "12+" rather than a number the loaded range cannot back up.
+ */
+function countStreak(now: Date, from: string, tasks: DayTask[]): string {
+  const done = new Set(tasks.filter((task) => task.done).map((task) => task.day))
+  const day = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  let streak = 0
+
+  if (!done.has(toDateInput(day))) day.setDate(day.getDate() - 1)
+  while (done.has(toDateInput(day))) {
+    streak += 1
+    day.setDate(day.getDate() - 1)
+  }
+
+  return toDateInput(day) < from ? `${streak}+` : String(streak)
+}
+
 export interface DashboardPageProps {
   defaultView?: View
 }
 
 export function DashboardPage({ defaultView = 'month' }: DashboardPageProps) {
   const { all: types } = useTaskTypes()
-  const { today: tasks, loading: daysLoading } = useDays()
+  const { tasks: all, today: tasks, range, loading: daysLoading } = useDays()
   const [view, setView] = useState<View>(defaultView)
 
   const now = useMemo(() => new Date(), [])
-  const month = useMonthData(now, types)
-  const week = useWeekData(now)
+  const month = useMonthData(now, types, all)
+  const week = useWeekData(now, types, all)
+  const streak = useMemo(() => countStreak(now, range.from, all), [now, range.from, all])
 
   const doneToday = tasks.filter((t) => t.done).length
   const donePct = tasks.length ? Math.round((doneToday / tasks.length) * 100) : 0
@@ -104,8 +128,8 @@ export function DashboardPage({ defaultView = 'month' }: DashboardPageProps) {
           delta={`${donePct}%`}
           icon="checkmarkCircle"
         />
-        <StatCard label="Month progress" value={`${month.monthPct}%`} delta="+6%" icon="statsChart" />
-        <StatCard label="Day streak" value="11" delta="+2" icon="rocket" />
+        <StatCard label="Month progress" value={`${month.monthPct}%`} icon="statsChart" />
+        <StatCard label="Day streak" value={streak} icon="rocket" />
         <StatCard label="Task types" value={String(types.length)} icon="cube" />
       </div>
 

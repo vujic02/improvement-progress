@@ -36,7 +36,13 @@ export function CheckSquare({
   }
 
   if (!onToggle) {
-    return <span className={styles.box} style={style} aria-hidden="true" />
+    // Read-only: still announced when it carries a label, because the habit
+    // grid is nothing but these squares. Unlabelled ones are decoration.
+    return label ? (
+      <span className={styles.box} style={style} role="img" aria-label={label} />
+    ) : (
+      <span className={styles.box} style={style} aria-hidden="true" />
+    )
   }
 
   return (
