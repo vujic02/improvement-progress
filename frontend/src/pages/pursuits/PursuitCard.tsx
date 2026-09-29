@@ -23,6 +23,8 @@ import styles from './PursuitCard.module.css'
 export interface PursuitCardProps {
   pursuit: Pursuit
   area: PursuitArea
+  /** Opens the edit modal on this goal. */
+  onEdit: () => void
   onRemove: () => Promise<Result>
   /** Money areas only. Adds to the balance; negatives correct a mistake. */
   onContribute?: (amount: number) => Promise<Result>
@@ -45,6 +47,7 @@ function countdown(targetAt: string): { text: string; late: boolean } {
 export function PursuitCard({
   pursuit,
   area,
+  onEdit,
   onRemove,
   onContribute,
   onAddStep,
@@ -106,14 +109,22 @@ export function PursuitCard({
             {meta.label}
           </span>
         </div>
-        <IconButton
-          icon="trash"
-          label={`Remove ${pursuit.name}`}
-          size={18}
-          className={styles.remove}
-          disabled={busy}
-          onClick={() => void run(onRemove)}
-        />
+        <div className={styles.headActions}>
+          <IconButton
+            icon="pencil"
+            label={`Edit ${pursuit.name}`}
+            size={18}
+            disabled={busy}
+            onClick={onEdit}
+          />
+          <IconButton
+            icon="trash"
+            label={`Remove ${pursuit.name}`}
+            size={18}
+            disabled={busy}
+            onClick={() => void run(onRemove)}
+          />
+        </div>
       </div>
 
       <div className={styles.progress}>

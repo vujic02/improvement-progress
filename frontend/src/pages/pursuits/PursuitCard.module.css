@@ -43,7 +43,9 @@
   border-radius: 50%;
 }
 
-.remove {
+.headActions {
+  display: flex;
+  gap: 2px;
   flex-shrink: 0;
   align-self: flex-start;
 }

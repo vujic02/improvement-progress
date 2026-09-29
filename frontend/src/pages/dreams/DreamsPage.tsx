@@ -28,12 +28,21 @@ export function DreamsPage() {
     error,
     reload,
     add,
+    update,
     remove,
     addStep,
     toggleStep,
     removeStep,
   } = useDreams()
   const [creating, setCreating] = useState(false)
+  // Held by id, so the modal reads the dream as it is now rather than a copy
+  // taken when the pencil was pressed.
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const editing = editingId ? dreams.find((d) => d.id === editingId) : undefined
+  const closeModal = () => {
+    setCreating(false)
+    setEditingId(null)
+  }
 
   const stats = useMemo(() => {
     const steps = dreams.flatMap((d) => d.steps)
@@ -164,6 +173,7 @@ export function DreamsPage() {
                 <DreamCard
                   key={dream.id}
                   dream={dream}
+                  onEdit={() => setEditingId(dream.id)}
                   onRemove={() => remove(dream.id)}
                   onAddStep={(label) => addStep(dream.id, label)}
                   onToggleStep={(stepId) => toggleStep(dream.id, stepId)}
@@ -175,7 +185,12 @@ export function DreamsPage() {
         </>
       )}
 
-      <DreamModal open={creating} onClose={() => setCreating(false)} onCreate={add} />
+      <DreamModal
+        open={creating || editing !== undefined}
+        editing={editing}
+        onClose={closeModal}
+        onSubmit={editing ? (fields) => update(editing.id, fields) : add}
+      />
     </DashboardLayout>
   )
 }

@@ -3,6 +3,7 @@ package com.kaizen.pursuit;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 
@@ -15,6 +16,7 @@ import com.kaizen.pursuit.dto.NewPursuitRequest;
 import com.kaizen.pursuit.dto.NewStepRequest;
 import com.kaizen.pursuit.dto.PursuitResponse;
 import com.kaizen.pursuit.dto.StepResponse;
+import com.kaizen.pursuit.dto.UpdatePursuitRequest;
 import com.kaizen.pursuit.dto.UpdateStepRequest;
 
 /**
@@ -39,21 +41,13 @@ public class PursuitService {
 
     @Transactional
     public PursuitResponse add(Long userId, PursuitArea area, NewPursuitRequest request) {
-        String name = request.name().trim();
-        if (name.isEmpty()) {
-            throw ApiException.badRequest("Give it a name.");
-        }
-        if (name.length() > Pursuit.NAME_MAX) {
-            throw ApiException.badRequest("Keep the name to " + Pursuit.NAME_MAX + " characters.");
-        }
+        String name = nameFor(request.name());
         // Unique within its own area only - a "House" dream and a "House"
         // savings goal are the same thing seen from two pages.
         if (repo.existsByUserIdAndAreaAndName(userId, area, name)) {
             throw ApiException.conflict("You already have one with that name.");
         }
-        if (request.targetAt().isBefore(request.createdAt())) {
-            throw ApiException.badRequest("The target date is before the start date.");
-        }
+        checkDates(request.createdAt(), request.targetAt());
 
         Pursuit pursuit = new Pursuit(userId, area, name, request.createdAt(), request.targetAt());
         pursuit.setKind(kindFor(area, request.kind()));
@@ -69,6 +63,46 @@ public class PursuitService {
         }
 
         return PursuitResponse.of(repo.save(pursuit));
+    }
+
+    /**
+     * Rewrites everything the create modal set, except the area and the
+     * balance. The body is the whole form, so a blank image or target clears
+     * it. Steps are untouched - they have their own endpoints.
+     */
+    @Transactional
+    public PursuitResponse update(Long userId, Long id, UpdatePursuitRequest request) {
+        Pursuit pursuit = require(userId, id);
+        PursuitArea area = pursuit.getArea();
+
+        String name = nameFor(request.name());
+        if (repo.existsByUserIdAndAreaAndNameIgnoreCaseAndIdNot(userId, area, name, id)) {
+            throw ApiException.conflict("You already have one with that name.");
+        }
+        checkDates(request.createdAt(), request.targetAt());
+
+        String kind = kindFor(area, request.kind());
+        String icon = iconFor(area, request.icon());
+        String image = imageFor(request.image());
+        BigDecimal target;
+        if (area.isMoney()) {
+            target = amount(request.target(), "target");
+        } else if (request.target() != null) {
+            throw ApiException.badRequest("Goals on this page do not carry amounts.");
+        } else {
+            target = null;
+        }
+
+        // Every check has passed before anything is written, so a rejected
+        // edit leaves the goal exactly as it was.
+        pursuit.setName(name);
+        pursuit.setKind(kind);
+        pursuit.setIcon(icon);
+        pursuit.setImage(image);
+        pursuit.setTarget(target);
+        pursuit.setStartedOn(request.createdAt());
+        pursuit.setTargetOn(request.targetAt());
+        return PursuitResponse.of(pursuit);
     }
 
     @Transactional
@@ -148,6 +182,23 @@ public class PursuitService {
                 .filter(candidate -> candidate.getId().equals(stepId))
                 .findFirst()
                 .orElseThrow(() -> ApiException.notFound("No such step."));
+    }
+
+    private static String nameFor(String raw) {
+        String name = raw.trim();
+        if (name.isEmpty()) {
+            throw ApiException.badRequest("Give it a name.");
+        }
+        if (name.length() > Pursuit.NAME_MAX) {
+            throw ApiException.badRequest("Keep the name to " + Pursuit.NAME_MAX + " characters.");
+        }
+        return name;
+    }
+
+    private static void checkDates(LocalDate start, LocalDate target) {
+        if (target.isBefore(start)) {
+            throw ApiException.badRequest("The target date is before the start date.");
+        }
     }
 
     /** Kinds are a closed list per area, and areas without kinds take none. */

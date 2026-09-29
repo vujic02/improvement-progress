@@ -41,6 +41,7 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
     error,
     reload,
     add,
+    update,
     remove,
     addStep,
     toggleStep,
@@ -49,6 +50,14 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
   } = usePursuitStore(context, hookName)
 
   const [creating, setCreating] = useState(false)
+  // Held by id, so the modal reads the goal as it is now rather than a copy
+  // taken when the pencil was pressed.
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const editing = editingId ? pursuits.find((p) => p.id === editingId) : undefined
+  const closeModal = () => {
+    setCreating(false)
+    setEditingId(null)
+  }
   const [filter, setFilter] = useState<string>('all')
 
   const filters = useMemo(
@@ -235,6 +244,7 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
                     key={pursuit.id}
                     pursuit={pursuit}
                     area={area}
+                    onEdit={() => setEditingId(pursuit.id)}
                     onRemove={() => remove(pursuit.id)}
                     onContribute={
                       area.money ? (value) => contribute(pursuit.id, value) : undefined
@@ -260,10 +270,11 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
       )}
 
       <PursuitModal
-        open={creating}
+        open={creating || editing !== undefined}
         area={area}
-        onClose={() => setCreating(false)}
-        onCreate={add}
+        editing={editing}
+        onClose={closeModal}
+        onSubmit={editing ? (fields) => update(editing.id, fields) : add}
       />
     </DashboardLayout>
   )

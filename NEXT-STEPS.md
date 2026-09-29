@@ -409,8 +409,6 @@ days of retention is a cron line.
 
 ### Smaller, whenever
 
-- `feature/edit-pursuits` — a pursuit cannot be changed after it is created;
-  the backend has no `PATCH /api/pursuits/{id}`.
 - `feature/navbar-actions` — the bell, search and settings buttons are still
   decorative.
 - The `NotificationCard` built for reminders has nowhere to render until

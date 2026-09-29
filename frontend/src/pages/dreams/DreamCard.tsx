@@ -15,6 +15,8 @@ import styles from './DreamCard.module.css'
 
 export interface DreamCardProps {
   dream: Pursuit
+  /** Opens the edit modal on this dream. */
+  onEdit: () => void
   onRemove: () => Promise<Result>
   onAddStep: (label: string) => Promise<Result>
   onToggleStep: (stepId: string) => Promise<Result>
@@ -38,6 +40,7 @@ function countdown(targetAt: string): { text: string; late: boolean } {
  */
 export function DreamCard({
   dream,
+  onEdit,
   onRemove,
   onAddStep,
   onToggleStep,
@@ -104,14 +107,24 @@ export function DreamCard({
           <Icon name={icon} size={18} />
         </span>
 
-        <IconButton
-          icon="trash"
-          label={`Remove ${dream.name}`}
-          size={18}
-          className={styles.remove}
-          disabled={busy}
-          onClick={() => void run(onRemove)}
-        />
+        <div className={styles.bannerActions}>
+          <IconButton
+            icon="pencil"
+            label={`Edit ${dream.name}`}
+            size={18}
+            className={styles.bannerButton}
+            disabled={busy}
+            onClick={onEdit}
+          />
+          <IconButton
+            icon="trash"
+            label={`Remove ${dream.name}`}
+            size={18}
+            className={styles.bannerButton}
+            disabled={busy}
+            onClick={() => void run(onRemove)}
+          />
+        </div>
 
         <span className={styles.name}>{dream.name}</span>
       </div>

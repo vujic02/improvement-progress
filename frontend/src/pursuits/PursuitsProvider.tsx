@@ -11,7 +11,52 @@ import {
 import { del, failure, get, patch, post } from '../lib/api'
 import { parseDateInput } from '../lib/date'
 import { useSession } from '../session/context'
-import type { NewPursuit, PursuitAreaId, PursuitContext, Result } from './context'
+import type { NewPursuit, PursuitAreaId, PursuitContext, PursuitEdit, Result } from './context'
+
+/**
+ * The cheap checks `add` and `update` share, run before a request so a typo
+ * gets an instant answer. Returns the trimmed name and the normalised image,
+ * or why the form was refused. `self` is the goal being edited, which may keep
+ * its own name.
+ */
+function checkForm(
+  fields: PursuitEdit & { saved?: number },
+  others: Pursuit[],
+  self?: string,
+): { ok: true; name: string; image: string | undefined } | { ok: false; reason: string } {
+  const name = fields.name.trim()
+  if (!name) return { ok: false, reason: 'Give it a name.' }
+  if (name.length > PURSUIT_NAME_MAX) {
+    return { ok: false, reason: `Keep the name to ${PURSUIT_NAME_MAX} characters.` }
+  }
+  if (others.some((p) => p.id !== self && p.name.toLowerCase() === name.toLowerCase())) {
+    return { ok: false, reason: 'You already have one with that name.' }
+  }
+
+  const start = parseDateInput(fields.createdAt)
+  const target = parseDateInput(fields.targetAt)
+  if (!start) return { ok: false, reason: 'Pick a start date.' }
+  if (!target) return { ok: false, reason: 'Pick a target date.' }
+  if (target < start) return { ok: false, reason: 'The target date is before the start date.' }
+
+  // Only https addresses are stored, and only ever rendered as an <img src>.
+  const picture = fields.image?.trim() ? safeImageUrl(fields.image) : null
+  if (fields.image?.trim() && !picture) {
+    return { ok: false, reason: 'Use an https:// address for the image.' }
+  }
+
+  for (const amount of [fields.target, fields.saved]) {
+    if (amount === undefined) continue
+    if (!Number.isFinite(amount) || amount < 0) {
+      return { ok: false, reason: 'Amounts have to be zero or more.' }
+    }
+    if (amount > MAX_AMOUNT) {
+      return { ok: false, reason: `Keep amounts under ${formatMoney(MAX_AMOUNT)}.` }
+    }
+  }
+
+  return { ok: true, name, image: picture ?? undefined }
+}
 
 export interface PursuitsProviderProps {
   /** Which list this provider holds — the server keeps the three apart by it. */
@@ -84,57 +129,20 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
   )
 
   const add = useCallback(
-    async ({
-      name,
-      kind,
-      icon,
-      image,
-      target: targetAmount,
-      saved: savedAmount,
-      createdAt,
-      targetAt,
-    }: NewPursuit): Promise<Result> => {
-      const label = name.trim()
-      if (!label) return { ok: false, reason: 'Give it a name.' }
-      if (label.length > PURSUIT_NAME_MAX) {
-        return { ok: false, reason: `Keep the name to ${PURSUIT_NAME_MAX} characters.` }
-      }
-      if (pursuits.some((p) => p.name.toLowerCase() === label.toLowerCase())) {
-        return { ok: false, reason: 'You already have one with that name.' }
-      }
-
-      const start = parseDateInput(createdAt)
-      const target = parseDateInput(targetAt)
-      if (!start) return { ok: false, reason: 'Pick a start date.' }
-      if (!target) return { ok: false, reason: 'Pick a target date.' }
-      if (target < start) return { ok: false, reason: 'The target date is before the start date.' }
-
-      // Only https addresses are stored, and only ever rendered as an <img src>.
-      const picture = image?.trim() ? safeImageUrl(image) : null
-      if (image?.trim() && !picture) {
-        return { ok: false, reason: 'Use an https:// address for the image.' }
-      }
-
-      for (const amount of [targetAmount, savedAmount]) {
-        if (amount === undefined) continue
-        if (!Number.isFinite(amount) || amount < 0) {
-          return { ok: false, reason: 'Amounts have to be zero or more.' }
-        }
-        if (amount > MAX_AMOUNT) {
-          return { ok: false, reason: `Keep amounts under ${formatMoney(MAX_AMOUNT)}.` }
-        }
-      }
+    async (fields: NewPursuit): Promise<Result> => {
+      const checked = checkForm(fields, pursuits)
+      if (!checked.ok) return checked
 
       try {
         const created = await post<Pursuit>(`/api/pursuits?area=${area}`, {
-          name: label,
-          kind,
-          icon,
-          image: picture ?? undefined,
-          target: targetAmount,
-          saved: savedAmount,
-          createdAt,
-          targetAt,
+          name: checked.name,
+          kind: fields.kind,
+          icon: fields.icon,
+          image: checked.image,
+          target: fields.target,
+          saved: fields.saved,
+          createdAt: fields.createdAt,
+          targetAt: fields.targetAt,
         })
         setPursuits((prev) => [created, ...prev])
         return { ok: true }
@@ -143,6 +151,33 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
       }
     },
     [area, pursuits],
+  )
+
+  const update = useCallback(
+    async (id: string, fields: PursuitEdit): Promise<Result> => {
+      const checked = checkForm(fields, pursuits, id)
+      if (!checked.ok) return checked
+
+      try {
+        // The whole form goes, so a blank image or target clears it. Steps and
+        // the balance come back untouched.
+        replace(
+          await patch<Pursuit>(`/api/pursuits/${id}`, {
+            name: checked.name,
+            kind: fields.kind,
+            icon: fields.icon,
+            image: checked.image,
+            target: fields.target,
+            createdAt: fields.createdAt,
+            targetAt: fields.targetAt,
+          }),
+        )
+        return { ok: true }
+      } catch (e) {
+        return failure(e)
+      }
+    },
+    [pursuits, replace],
   )
 
   const remove = useCallback(async (id: string): Promise<Result> => {
@@ -235,13 +270,26 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
       error,
       reload,
       add,
+      update,
       remove,
       addStep,
       toggleStep,
       removeStep,
       contribute,
     }),
-    [pursuits, loading, error, reload, add, remove, addStep, toggleStep, removeStep, contribute],
+    [
+      pursuits,
+      loading,
+      error,
+      reload,
+      add,
+      update,
+      remove,
+      addStep,
+      toggleStep,
+      removeStep,
+      contribute,
+    ],
   )
 
   return <context.Provider value={value}>{children}</context.Provider>

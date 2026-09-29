@@ -187,6 +187,16 @@ and `useDreams()` are one-line wrappers.
 - **Creation happens in a modal**, not inline on the page like task types do.
   The name field is first, before the kind picker — you know what you're after
   before you know which box it goes in.
+- **Editing reuses that modal**, opened from the pencil on a card and filled
+  with the goal as it is. Everything the create form set can change — name,
+  kind, dates, target amount, a dream's icon and picture — **except the area**
+  (a goal does not move between pages) **and the balance**, which only moves
+  through contributions so an edit cannot quietly rewrite how much has gone in.
+  Steps are untouched; they are edited on the card.
+- `PATCH /api/pursuits/{id}` takes **the whole form, not a diff**: a blank
+  image or target clears it. A goal may keep its own name; taking another
+  goal's name in the same area is refused, case-insensitively. Every check
+  runs before anything is written, so a rejected edit changes nothing.
 - **Steps are added after creation**, from the pursuit's own card. They are the
   rungs: 70kg, 75kg, 80kg, or learn CI, learn CD, wire up Actions, deploy to
   the VPS. Progress is steps done over steps total; no steps means 0%.

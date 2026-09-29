@@ -19,6 +19,7 @@ import com.kaizen.pursuit.dto.NewPursuitRequest;
 import com.kaizen.pursuit.dto.NewStepRequest;
 import com.kaizen.pursuit.dto.PursuitResponse;
 import com.kaizen.pursuit.dto.StepResponse;
+import com.kaizen.pursuit.dto.UpdatePursuitRequest;
 import com.kaizen.pursuit.dto.UpdateStepRequest;
 
 import jakarta.validation.Valid;
@@ -50,6 +51,13 @@ public class PursuitController {
     public PursuitResponse add(@AuthenticationPrincipal Long userId, @RequestParam PursuitArea area,
             @Valid @RequestBody NewPursuitRequest request) {
         return service.add(userId, area, request);
+    }
+
+    /** The whole edit form. The area and the balance cannot change here. */
+    @PatchMapping("/{id}")
+    public PursuitResponse update(@AuthenticationPrincipal Long userId, @PathVariable Long id,
+            @Valid @RequestBody UpdatePursuitRequest request) {
+        return service.update(userId, id, request);
     }
 
     @DeleteMapping("/{id}")

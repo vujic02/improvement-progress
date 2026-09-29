@@ -22,6 +22,12 @@ export interface NewPursuit {
   targetAt: string
 }
 
+/**
+ * What the edit modal sends: the whole form. A blank optional field clears it.
+ * No balance — that only moves through `contribute`.
+ */
+export type PursuitEdit = Omit<NewPursuit, 'saved'>
+
 export interface PursuitStore {
   /** Newest first — the order the grid renders in. */
   pursuits: Pursuit[]
@@ -36,6 +42,8 @@ export interface PursuitStore {
    * image address that is not https — here first, then again on the server.
    */
   add: (pursuit: NewPursuit) => Promise<Result>
+  /** The same checks as `add`, except a goal may keep its own name. */
+  update: (id: string, edit: PursuitEdit) => Promise<Result>
   remove: (id: string) => Promise<Result>
   /** Rejects blank, long and duplicate steps within the same pursuit. */
   addStep: (pursuitId: string, label: string) => Promise<Result>
