@@ -13,6 +13,7 @@ import { TaskTypesPage } from './pages/taskTypes/TaskTypesPage'
 import { WelcomePage } from './pages/welcome/WelcomePage'
 import { ProfileProvider } from './profile/ProfileProvider'
 import { PursuitsProvider } from './pursuits/PursuitsProvider'
+import { RoutinesProvider } from './routines/RoutinesProvider'
 import { navigate, useRoute, type Route } from './router'
 import { SavingsContext } from './savings/context'
 import { useSession, type SessionStatus } from './session/context'
@@ -85,15 +86,17 @@ function AccountScope() {
   return (
     <TaskTypesProvider key={user?.id ?? 'signed-out'}>
       <DaysProvider>
-        <PursuitsProvider area="savings" context={SavingsContext}>
-          <PursuitsProvider area="growth" context={GrowthContext}>
-            <PursuitsProvider area="dreams" context={DreamsContext}>
-              <ProfileProvider>
-                <Screen />
-              </ProfileProvider>
+        <RoutinesProvider>
+          <PursuitsProvider area="savings" context={SavingsContext}>
+            <PursuitsProvider area="growth" context={GrowthContext}>
+              <PursuitsProvider area="dreams" context={DreamsContext}>
+                <ProfileProvider>
+                  <Screen />
+                </ProfileProvider>
+              </PursuitsProvider>
             </PursuitsProvider>
           </PursuitsProvider>
-        </PursuitsProvider>
+        </RoutinesProvider>
       </DaysProvider>
     </TaskTypesProvider>
   )

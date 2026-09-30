@@ -1,13 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { Button, GlassCard, Input, SectionHeading, TaskRow } from '../../components'
-import { useDays } from '../../days/context'
+import { TASK_LABEL_MAX, useDays } from '../../days/context'
 import { TASK_TYPE_NAME_MAX } from '../../data/taskTypes'
 import type { Result } from '../../session/context'
 import { useTaskTypes } from '../../taskTypes/context'
 import styles from './views.module.css'
 
 /** Long enough for a real task, and what the API stores. */
-const LABEL_MAX = 80
 
 export interface TodayTasksProps {
   /** The line under the heading — the same tally the page head shows. */
@@ -86,7 +85,7 @@ export function TodayTasks({ subtitle, compact }: TodayTasksProps) {
           <Input
             label="Task"
             value={label}
-            maxLength={LABEL_MAX}
+            maxLength={TASK_LABEL_MAX}
             placeholder="e.g. Read 20 pages"
             autoFocus
             onChange={(e) => {
@@ -156,6 +155,7 @@ export function TodayTasks({ subtitle, compact }: TodayTasksProps) {
                 type={compact ? undefined : type?.label}
                 color={type?.color ?? 'var(--text-muted)'}
                 done={task.done}
+                recurring={task.routineId !== undefined}
                 compact={compact}
                 onToggle={() => run(task.id, toggle)}
                 onRemove={() => run(task.id, remove)}

@@ -40,6 +40,10 @@ public class DayTask {
     @Column(name = "default_key", length = 20)
     private String defaultKey;
 
+    /** The routine this copy was filled in from. Null for a task added by hand. */
+    @Column(name = "routine_id")
+    private Long routineId;
+
     @Column(nullable = false, length = LABEL_MAX)
     private String label;
 
@@ -48,6 +52,13 @@ public class DayTask {
 
     @Column(nullable = false)
     private boolean done;
+
+    /**
+     * Renamed by hand. A routine's copy that is ticked or renamed belongs to
+     * the user, and an edit to the routine leaves it alone.
+     */
+    @Column(nullable = false)
+    private boolean edited;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -69,6 +80,27 @@ public class DayTask {
      */
     public String getTypeId() {
         return customTypeId != null ? String.valueOf(customTypeId) : defaultKey;
+    }
+
+    /** Neither ticked nor renamed - an edit to its routine may still rewrite it. */
+    public boolean isUntouched() {
+        return !done && !edited;
+    }
+
+    public Long getRoutineId() {
+        return routineId;
+    }
+
+    public void setRoutineId(Long routineId) {
+        this.routineId = routineId;
+    }
+
+    public boolean isEdited() {
+        return edited;
+    }
+
+    public void setEdited(boolean edited) {
+        this.edited = edited;
     }
 
     public Long getId() {

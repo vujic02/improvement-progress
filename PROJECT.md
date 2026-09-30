@@ -129,6 +129,37 @@ the habit grid and week view are the same rows read over a longer range.
   the loaded range can be counted, so a longer run reads `12+` rather than a
   number the data cannot back up.
 
+### Recurring tasks (routines)
+
+Managed in the "Routine" section of the task types page, since every routine
+is filed under a type. A routine is **only a template**: each day it runs on
+gets an ordinary `day_tasks` row with a `routine_id`, so the habit grid, the
+week cards and the streak read them without knowing routines exist.
+
+- **Schedules:** every day, chosen weekdays, the 1st, the last day, a day of
+  the month (the 31st falls back to the last day of a short month), every N
+  days (counted from the start date), and every N weeks on chosen weekdays
+  (counted from the start date's Sunday-first week). Weekdays are 0–6, Sunday
+  first, stored as a bitmask. A routine starts on the day it is created.
+- **Days are filled in on read.** `GET /api/day-tasks` first gives every day
+  from the routine's last fill up to today its copies, unticked — including
+  days the app was never opened, so a missed day is a gap in the grid rather
+  than a blank. `generated_through` makes each day filled **once**: a copy
+  deleted by hand is not put back. Backfill stops at **62 days**, and future
+  days are never filled, so the week view shows nothing ahead of today.
+- **Today is the client's.** Reads and routine writes send `?today=`, because
+  the day turns over where the user is. A date more than a day off the
+  server's clock is refused as a wrong clock.
+- **Edits reach today only if it is untouched.** Past days keep what they had.
+  Today's copy follows an edit — or goes, if the new schedule no longer
+  includes today — unless it has been ticked or renamed (`day_tasks.edited`).
+  A touched copy is the user's.
+- **Removing a routine** takes today's untouched copy; every other copy stays
+  as a plain task (`routine_id` set null). Deleting a custom task type takes
+  its routines along with its tasks.
+- Up to **50** routines per account. Routine copies carry a small repeat icon
+  in today's list.
+
 ## Pursuits — savings and self-improvement
 
 A **pursuit** is anything worked towards over time. Two pages are built on the

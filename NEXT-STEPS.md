@@ -368,14 +368,11 @@ real `CORS_ORIGINS` setting.
 
 The wiring is nearly done; these are features. One branch each, named here.
 
-### `feature/recurring-tasks` — the one that decides whether this gets used
+### ~~`feature/recurring-tasks`~~ — built
 
-Every day starts as a blank list, so tracking costs five minutes of typing
-before you have done anything. Nobody keeps that up. A "my usual day" set —
-pick the types and labels once, have them appear each morning as unticked
-tasks — turns the daily cost into ticking boxes. It also makes the habit grid
-mean something: a missed day becomes a visible gap rather than an absence of
-data.
+Routines on the task types page fill each day with unticked tasks, missed
+days included. See "Recurring tasks" in PROJECT.md. Previewing planned copies
+on future days in the week view is still open.
 
 ### `feature/day-history` — see the past, and fix it
 
@@ -415,5 +412,5 @@ days of retention is a cron line.
   something actually delivers one. That is the reminder-delivery feature, which
   needs outgoing email first.
 
-**If only one gets built: `feature/recurring-tasks`.** The rest is polish on a
-tracker that is currently too expensive to use daily.
+**Recurring tasks are in**, so a day no longer starts as a blank list. Next in
+value: `feature/day-history`, so a forgotten day can be fixed after the fact.

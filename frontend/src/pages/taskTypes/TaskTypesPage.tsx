@@ -22,7 +22,9 @@ import {
 import { useDays } from '../../days/context'
 import { APP_NAME } from '../../lib/brand'
 import { useTaskTypes } from '../../taskTypes/context'
+import { useRoutines } from '../../routines/context'
 import { DashboardLayout } from '../dashboard/DashboardLayout'
+import { RoutineSection } from './RoutineSection'
 import styles from './TaskTypesPage.module.css'
 
 const FIRST_ICON: IconName = PICKABLE_ICONS[0]
@@ -38,8 +40,9 @@ export function TaskTypesPage() {
     addCustom,
     removeCustom,
   } = useTaskTypes()
-  // Deleting a type deletes its tasks server-side, so today's list is stale after.
+  // Deleting a type deletes its tasks and routines server-side, so both are stale after.
   const { reload: reloadDays } = useDays()
+  const { reload: reloadRoutines } = useRoutines()
 
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
@@ -77,14 +80,18 @@ export function TaskTypesPage() {
   const remove = async (id: string, label: string) => {
     if (removing) return
     // Its tasks go with it, and past days are scored on those, so this one asks.
-    if (!window.confirm(`Delete "${label}"? Every task logged against it goes too.`)) return
+    if (!window.confirm(`Delete "${label}"? Every task logged against it, and every recurring task using it, goes too.`)) return
 
     setRemoving(id)
     setRemoveError(null)
     const result = await removeCustom(id)
     setRemoving(null)
-    if (result.ok) reloadDays()
-    else setRemoveError(result.reason)
+    if (result.ok) {
+      reloadDays()
+      reloadRoutines()
+    } else {
+      setRemoveError(result.reason)
+    }
   }
 
   return (
@@ -239,6 +246,9 @@ export function TaskTypesPage() {
           </GlassCard>
         )}
       </div>
+
+      {/* ---- routine ---- */}
+      <RoutineSection />
 
       {/* ---- defaults ---- */}
       <div className={styles.section}>
