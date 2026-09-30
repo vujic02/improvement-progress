@@ -6,9 +6,15 @@ import type { IconName } from '../components/Icon'
  * (`#/savings`) and growth (`#/self-improvement`) — and they differ only in the
  * kinds on offer and the words around them, which is what a `PursuitArea` is.
  */
+/**
+ * A rung on the way. Growth goals and dreams write it in words (`label`); money
+ * goals lay it out as a payment (`amount`) — a 6000 target as twelve steps of
+ * 500 — and ticking one moves its amount into the balance. Exactly one is set.
+ */
 export interface PursuitStep {
   id: string
-  label: string
+  label?: string
+  amount?: number
   done: boolean
 }
 
@@ -24,9 +30,9 @@ export interface Pursuit {
   icon?: IconName
   /** An https image address. Always run through `safeImageUrl` first. */
   image?: string
-  /** What it costs, in `CURRENCY`. Only areas with `money` ask for it. */
+  /** What it costs, in the account's currency. Only areas with `money` ask for it. */
   target?: number
-  /** Put aside so far, in `CURRENCY`. Grows through `contribute`. */
+  /** Put aside so far, in the account's currency. Grows through `contribute`. */
   saved?: number
   /** yyyy-mm-dd. Defaults to today but the user may back-date it. */
   createdAt: string
@@ -40,6 +46,9 @@ export const PURSUIT_NAME_MAX = 40
 
 /** Steps get more room than names — they read as short sentences. */
 export const STEP_NAME_MAX = 60
+
+/** Payments added in one go: 500 × 60 is five years of months. */
+export const STEP_BATCH_MAX = 60
 
 /** How far ahead the target date starts when the modal opens. */
 export const DEFAULT_TARGET_MONTHS = 6
@@ -83,32 +92,32 @@ export interface PursuitArea {
   modalTitle: string
   modalSubtitle: string
   namePlaceholder: string
-  /**
-   * The area breaks its pursuits into steps. Defaults to true; savings sets it
-   * false — a savings goal is measured by its balance, and a checklist beside
-   * that is two answers to the same question.
-   */
-  steps?: boolean
-  /** Placeholder in a card's add-a-step field. Step areas only. */
+  /** Placeholder in a card's add-a-step field. */
   stepPlaceholder?: string
-  /** Shown on a card that has no steps yet. Step areas only. */
+  /** Shown on a card that has no steps yet. */
   noSteps?: string
   emptyTitle: string
   emptyText: string
   emptyCta: string
   /**
    * The area deals in money: the modal asks for a target and a starting
-   * balance, and cards take contributions. Growth goals and dreams do not —
-   * a bench press has no price.
+   * balance, cards take contributions, and steps are payments rather than
+   * words. Growth goals and dreams do not — a bench press has no price.
    */
   money?: boolean
 }
 
 /**
- * Euros, for now. One constant so switching later — or making it a per-user
- * setting — is a single edit rather than a search for "€".
+ * The currencies an account can show its money in, mirroring the server's
+ * `Currency` enum. **Switching relabels, it never converts** — 500 in euros
+ * becomes 500 in pounds. There are no exchange rates anywhere in the app.
  */
-export const CURRENCY = 'EUR'
+export const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'RSD'] as const
+
+export type CurrencyCode = (typeof CURRENCIES)[number]
+
+/** Every account starts here, and so did every account before the setting existed. */
+export const DEFAULT_CURRENCY: CurrencyCode = 'EUR'
 
 /**
  * Anything larger is a typo, not a savings goal. Guards the formatter and the
@@ -116,16 +125,40 @@ export const CURRENCY = 'EUR'
  */
 export const MAX_AMOUNT = 1_000_000_000
 
-const MONEY_FORMAT = new Intl.NumberFormat('en-IE', {
-  style: 'currency',
-  currency: CURRENCY,
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-})
+const formats = new Map<CurrencyCode, Intl.NumberFormat>()
 
-/** 10000 becomes "€10,000"; 2499.5 becomes "€2,499.5". */
-export function formatMoney(value: number): string {
-  return MONEY_FORMAT.format(value)
+/**
+ * One formatter per currency, built on first use. Same locale for all of them
+ * so grouping reads the same whichever is picked; `narrowSymbol` gives "$"
+ * rather than "US$". CHF and RSD have no narrower form and show their code.
+ */
+function moneyFormat(currency: CurrencyCode): Intl.NumberFormat {
+  let format = formats.get(currency)
+  if (!format) {
+    format = new Intl.NumberFormat('en-IE', {
+      style: 'currency',
+      currency,
+      currencyDisplay: 'narrowSymbol',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })
+    formats.set(currency, format)
+  }
+  return format
+}
+
+/** 10000 in EUR becomes "€10,000"; 2499.5 in GBP becomes "£2,499.5". */
+export function formatMoney(value: number, currency: CurrencyCode): string {
+  return moneyFormat(currency).format(value)
+}
+
+/** "€", "$", "£", "CHF", "RSD" — the prefix on amount fields. */
+export function currencySymbol(currency: CurrencyCode): string {
+  return (
+    moneyFormat(currency)
+      .formatToParts(0)
+      .find((part) => part.type === 'currency')?.value ?? currency
+  )
 }
 
 /** Reads an amount field. Returns null for blank, NaN for anything unusable. */

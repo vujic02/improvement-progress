@@ -18,7 +18,7 @@ import com.kaizen.pursuit.dto.ContributeRequest;
 import com.kaizen.pursuit.dto.NewPursuitRequest;
 import com.kaizen.pursuit.dto.NewStepRequest;
 import com.kaizen.pursuit.dto.PursuitResponse;
-import com.kaizen.pursuit.dto.StepResponse;
+import com.kaizen.pursuit.dto.UpdatePursuitRequest;
 import com.kaizen.pursuit.dto.UpdateStepRequest;
 
 import jakarta.validation.Valid;
@@ -52,21 +52,32 @@ public class PursuitController {
         return service.add(userId, area, request);
     }
 
+    /** The whole edit form. The area and the balance cannot change here. */
+    @PatchMapping("/{id}")
+    public PursuitResponse update(@AuthenticationPrincipal Long userId, @PathVariable Long id,
+            @Valid @RequestBody UpdatePursuitRequest request) {
+        return service.update(userId, id, request);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> remove(@AuthenticationPrincipal Long userId, @PathVariable Long id) {
         service.remove(userId, id);
         return ResponseEntity.noContent().build();
     }
 
+    /** A worded step, or {@code count} payments of {@code amount}. Returns the whole goal. */
     @PostMapping("/{id}/steps")
-    public StepResponse addStep(@AuthenticationPrincipal Long userId, @PathVariable Long id,
-            @Valid @RequestBody NewStepRequest request) {
+    public PursuitResponse addStep(@AuthenticationPrincipal Long userId, @PathVariable Long id,
+            @RequestBody NewStepRequest request) {
         return service.addStep(userId, id, request);
     }
 
-    /** An empty body flips the step; {@code {"done": true}} sets it outright. */
+    /**
+     * An empty body flips the step; {@code {"done": true}} sets it outright.
+     * Returns the whole goal, since ticking a payment moves the balance.
+     */
     @PatchMapping("/{id}/steps/{stepId}")
-    public StepResponse updateStep(@AuthenticationPrincipal Long userId, @PathVariable Long id,
+    public PursuitResponse updateStep(@AuthenticationPrincipal Long userId, @PathVariable Long id,
             @PathVariable Long stepId, @RequestBody(required = false) UpdateStepRequest request) {
         return service.updateStep(userId, id, stepId,
                 request == null ? new UpdateStepRequest(null) : request);

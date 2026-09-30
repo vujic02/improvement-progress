@@ -17,4 +17,11 @@ public interface PursuitRepository extends JpaRepository<Pursuit, Long> {
 
     /** The column collation is case-insensitive, so this is a CI check. */
     boolean existsByUserIdAndAreaAndName(Long userId, PursuitArea area, String name);
+
+    /**
+     * The same check for a rename, skipping the goal being edited so saving it
+     * under its own name is not a clash. IgnoreCase spells out what the
+     * collation already does, so it holds on any database.
+     */
+    boolean existsByUserIdAndAreaAndNameIgnoreCaseAndIdNot(Long userId, PursuitArea area, String name, Long id);
 }

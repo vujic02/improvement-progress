@@ -43,7 +43,9 @@
   border-radius: 50%;
 }
 
-.remove {
+.headActions {
+  display: flex;
+  gap: 2px;
   flex-shrink: 0;
   align-self: flex-start;
 }
@@ -220,6 +222,14 @@
   text-wrap: pretty;
 }
 
+/* Payments made, and how the plan sits against the target. */
+.plan {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+
 /* ---- add a step ---- */
 .add {
   display: flex;
@@ -244,6 +254,30 @@
   color: var(--text);
   font-family: inherit;
   font-size: 13px;
+}
+
+/* Payments: amount × count. The count only ever needs two digits. */
+.times {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.addInput.countInput {
+  flex: 0 0 44px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.addInput[type='number']::-webkit-outer-spin-button,
+.addInput[type='number']::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.addInput[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .addInput::placeholder {

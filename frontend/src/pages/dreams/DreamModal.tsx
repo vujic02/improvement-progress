@@ -5,6 +5,7 @@ import {
   DEFAULT_TARGET_MONTHS,
   PURSUIT_NAME_MAX,
   safeImageUrl,
+  type Pursuit,
 } from '../../data/pursuits'
 import { daysBetween, mediumDate, parseDateInput, toDateInput } from '../../lib/date'
 import type { NewPursuit, Result } from '../../pursuits/context'
@@ -12,8 +13,10 @@ import styles from './DreamModal.module.css'
 
 export interface DreamModalProps {
   open: boolean
+  /** The dream being edited. Absent, the modal creates a new one. */
+  editing?: Pursuit
   onClose: () => void
-  onCreate: (dream: NewPursuit) => Result
+  onSubmit: (dream: NewPursuit) => Promise<Result>
 }
 
 /** Dreams sit further out than a savings goal, so they start a year ahead. */
@@ -26,16 +29,18 @@ function defaultTarget(from: Date): string {
 }
 
 /**
- * The fields. Mounted only while the dialog is open, so every open starts
- * blank and re-reads today's date — no reset effect needed.
+ * The fields. Mounted only while the dialog is open, so every open starts from
+ * the dream being edited, or blank with today's date — no reset effect needed.
  */
-function DreamForm({ onClose, onCreate }: Omit<DreamModalProps, 'open'>) {
-  const [name, setName] = useState('')
-  const [icon, setIcon] = useState<IconName>(DREAM_ICONS[0])
-  const [image, setImage] = useState('')
-  const [createdAt, setCreatedAt] = useState(() => toDateInput(new Date()))
-  const [targetAt, setTargetAt] = useState(() => defaultTarget(new Date()))
+function DreamForm({ editing, onClose, onSubmit }: Omit<DreamModalProps, 'open'>) {
+  const [name, setName] = useState(editing?.name ?? '')
+  const [icon, setIcon] = useState<IconName>(editing?.icon ?? DREAM_ICONS[0])
+  const [image, setImage] = useState(editing?.image ?? '')
+  const [createdAt, setCreatedAt] = useState(() => editing?.createdAt ?? toDateInput(new Date()))
+  const [targetAt, setTargetAt] = useState(() => editing?.targetAt ?? defaultTarget(new Date()))
   const [error, setError] = useState<string | null>(null)
+  // A write in flight — a second press would send it twice.
+  const [saving, setSaving] = useState(false)
   const [brokenImage, setBrokenImage] = useState(false)
 
   const start = parseDateInput(createdAt)
@@ -46,9 +51,12 @@ function DreamForm({ onClose, onCreate }: Omit<DreamModalProps, 'open'>) {
   const safe = typedImage ? safeImageUrl(typedImage) : null
   const showPreview = Boolean(safe) && !brokenImage
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const result = onCreate({ name, icon, image, createdAt, targetAt })
+    if (saving) return
+    setSaving(true)
+    const result = await onSubmit({ name, icon, image, createdAt, targetAt })
+    setSaving(false)
     if (result.ok) onClose()
     else setError(result.reason)
   }
@@ -154,8 +162,8 @@ function DreamForm({ onClose, onCreate }: Omit<DreamModalProps, 'open'>) {
       ) : null}
 
       <div className={styles.actions}>
-        <Button type="submit" size="md">
-          Create dream
+        <Button type="submit" size="md" disabled={saving}>
+          {saving ? (editing ? 'Saving…' : 'Creating…') : editing ? 'Save changes' : 'Create dream'}
         </Button>
         <Button type="button" variant="subtle" size="md" onClick={onClose}>
           Cancel
@@ -165,16 +173,23 @@ function DreamForm({ onClose, onCreate }: Omit<DreamModalProps, 'open'>) {
   )
 }
 
-/** Create a dream. Name, icon, an optional picture, and a date to aim at. */
-export function DreamModal({ open, onClose, onCreate }: DreamModalProps) {
+/**
+ * Create a dream, or edit one. Name, icon, an optional picture, and a date to
+ * aim at. Keyed on the dream so moving from one edit to another starts fresh.
+ */
+export function DreamModal({ open, editing, onClose, onSubmit }: DreamModalProps) {
   return (
     <Modal
       open={open}
-      title="New dream"
-      subtitle="Name it, pick something to stand for it, and give it a date. Steps come after."
+      title={editing ? `Edit ${editing.name}` : 'New dream'}
+      subtitle={
+        editing
+          ? 'Clear the picture to go back to the icon. Steps stay as they are.'
+          : 'Name it, pick something to stand for it, and give it a date. Steps come after.'
+      }
       onClose={onClose}
     >
-      <DreamForm onClose={onClose} onCreate={onCreate} />
+      <DreamForm key={editing?.id ?? 'new'} editing={editing} onClose={onClose} onSubmit={onSubmit} />
     </Modal>
   )
 }

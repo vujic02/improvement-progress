@@ -144,6 +144,23 @@ public class AuthService {
     }
 
     /**
+     * Relabels the account's money, it never converts it: 500 in euros becomes
+     * 500 in pounds. Anything off the Currency list is refused by name.
+     */
+    @Transactional
+    public UserResponse updateCurrency(Long userId, String code) {
+        Currency currency;
+        try {
+            currency = Currency.from(code);
+        } catch (IllegalArgumentException ex) {
+            throw ApiException.badRequest(ex.getMessage());
+        }
+        User user = require(userId);
+        user.setCurrency(currency);
+        return UserResponse.of(user);
+    }
+
+    /**
      * A success means the hash actually changed. It also retires every token
      * issued so far, so a session on another device ends with the old
      * password; the caller gets a fresh token to carry on with.

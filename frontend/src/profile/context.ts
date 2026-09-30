@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import type { CurrencyCode } from '../data/pursuits'
 import type { Reminder } from '../data/reminders'
 
 export type Result = { ok: true } | { ok: false; reason: string }
@@ -28,6 +29,10 @@ export interface ProfileStore {
     password: string
     confirm: string
   }) => Promise<Result>
+  /** The account's currency, read from the session. */
+  currency: CurrencyCode
+  /** Saves it through the API. Relabels every amount; converts none. */
+  setCurrency: (currency: CurrencyCode) => Promise<Result>
 
   reminders: Reminder[]
   /** Patch one reminder — toggle it, or change when it fires. */

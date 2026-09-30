@@ -148,6 +148,51 @@ class AuthFlowTest {
                 .andExpect(jsonPath("$.error").value("Too many attempts. Try again in 15 minutes."));
     }
 
+    @Test
+    void anAccountStartsInEurosAndSwitchingRelabelsIt() throws Exception {
+        String token = register("flow-currency@kaizen.app", "correct-horse");
+        me(token).andExpect(jsonPath("$.currency").value("EUR"));
+
+        currency(token, """
+                {"currency":" gbp "}
+                """)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currency").value("GBP"))
+                .andExpect(jsonPath("$.email").value("flow-currency@kaizen.app"));
+
+        // It sticks, and login hands it back with the rest of the account.
+        me(token).andExpect(jsonPath("$.currency").value("GBP"));
+        login("flow-currency@kaizen.app", "correct-horse").andExpect(jsonPath("$.user.currency").value("GBP"));
+
+        // Editing name and email leaves it alone.
+        account(token, """
+                {"name":"Nikola V","email":"flow-currency@kaizen.app"}
+                """)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.currency").value("GBP"));
+    }
+
+    @Test
+    void aCurrencyOffTheListIsRefusedByName() throws Exception {
+        String token = register("flow-currency-bad@kaizen.app", "correct-horse");
+
+        currency(token, """
+                {"currency":"JPY"}
+                """)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Pick one of EUR, USD, GBP, CHF, RSD."));
+        currency(token, "{}").andExpect(status().isBadRequest());
+
+        me(token).andExpect(jsonPath("$.currency").value("EUR"));
+    }
+
+    private ResultActions currency(String token, String body) throws Exception {
+        return mvc.perform(patch("/api/account/currency")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body));
+    }
+
     private String register(String email, String password) throws Exception {
         return token(mvc.perform(post("/api/auth/register")
                 .with(from(address))

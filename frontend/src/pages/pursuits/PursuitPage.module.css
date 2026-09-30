@@ -160,6 +160,13 @@
   padding: 20px 22px;
 }
 
+.stateError {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--accent-pink);
+  text-wrap: pretty;
+}
+
 .filterEmptyText {
   font-size: 14px;
   line-height: 1.5;

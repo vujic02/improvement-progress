@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.kaizen.user.dto.AuthResponse;
 import com.kaizen.user.dto.ChangePasswordRequest;
+import com.kaizen.user.dto.CurrencyRequest;
 import com.kaizen.user.dto.UpdateAccountRequest;
 import com.kaizen.user.dto.UserResponse;
 
@@ -30,6 +31,16 @@ public class AccountController {
     public UserResponse update(@AuthenticationPrincipal Long userId,
             @Valid @RequestBody UpdateAccountRequest request) {
         return service.updateAccount(userId, request);
+    }
+
+    /**
+     * Its own endpoint so the picker does not have to resend name and email.
+     * Relabels amounts, never converts them.
+     */
+    @PatchMapping("/currency")
+    public UserResponse updateCurrency(@AuthenticationPrincipal Long userId,
+            @RequestBody CurrencyRequest request) {
+        return service.updateCurrency(userId, request.currency());
     }
 
     /** Retires every token issued so far and hands the caller a fresh one to carry on with. */

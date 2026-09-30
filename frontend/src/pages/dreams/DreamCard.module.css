@@ -59,10 +59,15 @@
   color: var(--text);
 }
 
-.remove {
+.bannerActions {
   position: absolute;
   top: 14px;
   right: 12px;
+  display: flex;
+  gap: 6px;
+}
+
+.bannerButton {
   border-radius: var(--r-md);
   background: rgba(2, 5, 21, 0.6);
   backdrop-filter: blur(8px);

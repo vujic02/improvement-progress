@@ -227,11 +227,12 @@ instead, set `VITE_API_URL` to that address and add it to `CORS_ORIGINS`.
 
 ## What is not wired yet
 
-Sign-in, task types and today's tasks are wired: `SessionProvider`,
-`TaskTypesProvider`, `DaysProvider` and the account half of `ProfileProvider`
-(details, password, sign out everywhere) talk to the API. `PursuitsProvider`
-and the rest of `ProfileProvider` (reminders, channels) still hold everything
-in `useState`, reset whenever a different account signs in.
+Sign-in, task types, day tasks and goals are wired: `SessionProvider`,
+`TaskTypesProvider`, `DaysProvider`, `PursuitsProvider` (savings, growth and
+dreams) and the account half of `ProfileProvider` (details, password, sign out
+everywhere) talk to the API. The rest of `ProfileProvider` (reminders,
+channels) still holds everything in `useState`, reset whenever a different
+account signs in.
 
 The dashboard is fully wired: today's list, the week cards and the habit grid
 all read one `/api/day-tasks` range. The grid is read-only — it reports what

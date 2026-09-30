@@ -22,8 +22,27 @@ import styles from './DreamsPage.module.css'
  * filter strip is gone and the cards lead with a picture instead of a tint.
  */
 export function DreamsPage() {
-  const { pursuits: dreams, add, remove, addStep, toggleStep, removeStep } = useDreams()
+  const {
+    pursuits: dreams,
+    loading,
+    error,
+    reload,
+    add,
+    update,
+    remove,
+    addStep,
+    toggleStep,
+    removeStep,
+  } = useDreams()
   const [creating, setCreating] = useState(false)
+  // Held by id, so the modal reads the dream as it is now rather than a copy
+  // taken when the pencil was pressed.
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const editing = editingId ? dreams.find((d) => d.id === editingId) : undefined
+  const closeModal = () => {
+    setCreating(false)
+    setEditingId(null)
+  }
 
   const stats = useMemo(() => {
     const steps = dreams.flatMap((d) => d.steps)
@@ -41,7 +60,10 @@ export function DreamsPage() {
     }
   }, [dreams])
 
-  const empty = dreams.length === 0
+  // Until the list has loaded, "nothing yet" is a guess — the empty screen
+  // would flash its welcome at someone with a dozen dreams.
+  const settled = !loading && !error
+  const empty = settled && dreams.length === 0
 
   return (
     <DashboardLayout
@@ -56,7 +78,7 @@ export function DreamsPage() {
             one, and the steps between you and it.
           </span>
         </div>
-        {!empty ? (
+        {settled && !empty ? (
           <Button size="md" onClick={() => setCreating(true)}>
             <Icon name="plus" size={16} />
             New dream
@@ -64,7 +86,23 @@ export function DreamsPage() {
         ) : null}
       </div>
 
-      {empty ? (
+      {!settled ? (
+        /* ---- loading / failed ---- */
+        <GlassCard tone="b" className={styles.state}>
+          {loading ? (
+            <span className={styles.stateText}>Loading your dreams…</span>
+          ) : (
+            <>
+              <span className={styles.stateError} role="alert">
+                Couldn't load your dreams. {error}
+              </span>
+              <Button size="sm" onClick={reload}>
+                Try again
+              </Button>
+            </>
+          )}
+        </GlassCard>
+      ) : empty ? (
         /* ---- empty state ---- */
         <GlassCard tone="b" className={styles.empty} padding="52px 32px 44px">
           <span className={styles.emptyGlow} aria-hidden="true" />
@@ -135,8 +173,9 @@ export function DreamsPage() {
                 <DreamCard
                   key={dream.id}
                   dream={dream}
+                  onEdit={() => setEditingId(dream.id)}
                   onRemove={() => remove(dream.id)}
-                  onAddStep={(label) => addStep(dream.id, label)}
+                  onAddStep={(label) => addStep(dream.id, { label })}
                   onToggleStep={(stepId) => toggleStep(dream.id, stepId)}
                   onRemoveStep={(stepId) => removeStep(dream.id, stepId)}
                 />
@@ -146,7 +185,12 @@ export function DreamsPage() {
         </>
       )}
 
-      <DreamModal open={creating} onClose={() => setCreating(false)} onCreate={add} />
+      <DreamModal
+        open={creating || editing !== undefined}
+        editing={editing}
+        onClose={closeModal}
+        onSubmit={editing ? (fields) => update(editing.id, fields) : add}
+      />
     </DashboardLayout>
   )
 }

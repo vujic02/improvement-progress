@@ -119,6 +119,10 @@ public class Pursuit {
         return name;
     }
 
+    public void setName(String name) {
+        this.name = name;
+    }
+
     public String getKind() {
         return kind;
     }
@@ -163,8 +167,16 @@ public class Pursuit {
         return startedOn;
     }
 
+    public void setStartedOn(LocalDate startedOn) {
+        this.startedOn = startedOn;
+    }
+
     public LocalDate getTargetOn() {
         return targetOn;
+    }
+
+    public void setTargetOn(LocalDate targetOn) {
+        this.targetOn = targetOn;
     }
 
     public Instant getCreatedAt() {

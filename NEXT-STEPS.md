@@ -343,7 +343,7 @@ real `CORS_ORIGINS` setting.
 - [X] CI runs lint, the frontend build and the backend tests on every PR into `master` (`.github/workflows/ci.yml`)
 - [X] Day tasks: `day_tasks` table, `/api/day-tasks`, `DaysProvider`, today's list on the dashboard
 - [X] Week and month views read real day tasks; the dashboard mock data is gone
-- [ ] `PursuitsProvider` — savings first, then growth, then dreams (step 10)
+- [X] `PursuitsProvider` — savings, growth and dreams load and save through `/api/pursuits` (step 10)
 - [ ] `ProfileProvider` and reminders (step 10)
 - [ ] Every page handles loading and error, not just data (step 11)
 - [ ] Delete the mock seed data in `frontend/src/data/` that is now server-owned
@@ -409,8 +409,6 @@ days of retention is a cron line.
 
 ### Smaller, whenever
 
-- `feature/edit-pursuits` — a pursuit cannot be changed after it is created;
-  the backend has no `PATCH /api/pursuits/{id}`.
 - `feature/navbar-actions` — the bell, search and settings buttons are still
   decorative.
 - The `NotificationCard` built for reminders has nowhere to render until

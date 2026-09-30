@@ -252,6 +252,15 @@ const GLYPHS = {
     mode: 'stroke',
     el: <path d="m6 6 12 12M18 6 6 18" />,
   },
+  pencil: {
+    mode: 'stroke',
+    el: (
+      <>
+        <path d="M15.5 4.5 19.5 8.5 8.5 19.5H4.5v-4z" />
+        <path d="M13 7l4 4" />
+      </>
+    ),
+  },
   trash: {
     mode: 'stroke',
     el: (

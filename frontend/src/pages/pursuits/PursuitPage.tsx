@@ -8,10 +8,11 @@ import {
   SegmentedToggle,
   StatCard,
 } from '../../components'
-import { formatMoney, kindMeta, type PursuitArea } from '../../data/pursuits'
+import { kindMeta, type PursuitArea } from '../../data/pursuits'
 import { APP_NAME } from '../../lib/brand'
 import { daysBetween, mediumDate, parseDateInput } from '../../lib/date'
 import { usePursuitStore, type PursuitContext } from '../../pursuits/context'
+import { useMoney } from '../../pursuits/useMoney'
 import { DashboardLayout } from '../dashboard/DashboardLayout'
 import { PursuitCard } from './PursuitCard'
 import { PursuitModal } from './PursuitModal'
@@ -35,12 +36,30 @@ export interface PursuitPageProps {
  * Everything that differs between money and growth comes in through `area`.
  */
 export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
-  const { pursuits, add, remove, addStep, toggleStep, removeStep, contribute } = usePursuitStore(
-    context,
-    hookName,
-  )
+  const {
+    pursuits,
+    loading,
+    error,
+    reload,
+    add,
+    update,
+    remove,
+    addStep,
+    toggleStep,
+    removeStep,
+    contribute,
+  } = usePursuitStore(context, hookName)
 
+  const { format } = useMoney()
   const [creating, setCreating] = useState(false)
+  // Held by id, so the modal reads the goal as it is now rather than a copy
+  // taken when the pencil was pressed.
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const editing = editingId ? pursuits.find((p) => p.id === editingId) : undefined
+  const closeModal = () => {
+    setCreating(false)
+    setEditingId(null)
+  }
   const [filter, setFilter] = useState<string>('all')
 
   const filters = useMemo(
@@ -86,7 +105,10 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
   )
 
   const shown = filter === 'all' ? pursuits : pursuits.filter((p) => p.kind === filter)
-  const empty = pursuits.length === 0
+  // Until the list has loaded, "nothing yet" is a guess — the empty screen
+  // would flash its welcome at someone with twenty goals.
+  const settled = !loading && !error
+  const empty = settled && pursuits.length === 0
 
   return (
     <DashboardLayout activeId={area.navId} trail={[APP_NAME, area.title]}>
@@ -95,7 +117,7 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
           <span className={styles.title}>{area.title}</span>
           <span className={styles.blurb}>{area.blurb}</span>
         </div>
-        {!empty ? (
+        {settled && !empty ? (
           <Button size="md" onClick={() => setCreating(true)}>
             <Icon name="plus" size={16} />
             {area.newLabel}
@@ -103,7 +125,23 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
         ) : null}
       </div>
 
-      {empty ? (
+      {!settled ? (
+        /* ---- loading / failed ---- */
+        <GlassCard tone="b" className={styles.filterEmpty}>
+          {loading ? (
+            <span className={styles.filterEmptyText}>Loading your goals…</span>
+          ) : (
+            <>
+              <span className={styles.stateError} role="alert">
+                Couldn't load your goals. {error}
+              </span>
+              <Button size="sm" onClick={reload}>
+                Try again
+              </Button>
+            </>
+          )}
+        </GlassCard>
+      ) : empty ? (
         /* ---- empty state ---- */
         <GlassCard tone="b" className={styles.empty} padding="52px 32px 44px">
           <span className={styles.emptyGlow} aria-hidden="true" />
@@ -151,7 +189,7 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
                   <StatCard
                     key={row.kind}
                     label={row.meta.statLabel ?? row.meta.label}
-                    value={formatMoney(row.saved)}
+                    value={format(row.saved)}
                     delta={row.pct}
                     /* Bills are money out — a bigger number is not a gain. */
                     deltaTone={row.meta.spend ? 'neutral' : undefined}
@@ -208,11 +246,12 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
                     key={pursuit.id}
                     pursuit={pursuit}
                     area={area}
+                    onEdit={() => setEditingId(pursuit.id)}
                     onRemove={() => remove(pursuit.id)}
                     onContribute={
                       area.money ? (value) => contribute(pursuit.id, value) : undefined
                     }
-                    onAddStep={(label) => addStep(pursuit.id, label)}
+                    onAddStep={(step) => addStep(pursuit.id, step)}
                     onToggleStep={(stepId) => toggleStep(pursuit.id, stepId)}
                     onRemoveStep={(stepId) => removeStep(pursuit.id, stepId)}
                   />
@@ -233,10 +272,11 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
       )}
 
       <PursuitModal
-        open={creating}
+        open={creating || editing !== undefined}
         area={area}
-        onClose={() => setCreating(false)}
-        onCreate={add}
+        editing={editing}
+        onClose={closeModal}
+        onSubmit={editing ? (fields) => update(editing.id, fields) : add}
       />
     </DashboardLayout>
   )

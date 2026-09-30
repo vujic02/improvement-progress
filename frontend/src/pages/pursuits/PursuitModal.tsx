@@ -3,21 +3,31 @@ import { Button, Icon, Input, Modal } from '../../components'
 import {
   DEFAULT_TARGET_MONTHS,
   PURSUIT_NAME_MAX,
-  formatMoney,
   kindMeta,
   parseAmount,
+  type Pursuit,
   type PursuitArea,
 } from '../../data/pursuits'
 import { daysBetween, mediumDate, parseDateInput, toDateInput } from '../../lib/date'
 import type { NewPursuit, Result } from '../../pursuits/context'
+import { useMoney } from '../../pursuits/useMoney'
 import styles from './PursuitModal.module.css'
 
 export interface PursuitModalProps {
   open: boolean
   area: PursuitArea
+  /** The goal being edited. Absent, the modal creates a new one. */
+  editing?: Pursuit
   onClose: () => void
-  onCreate: (pursuit: NewPursuit) => Result
+  /**
+   * Create or save. When editing, `saved` is never sent — the balance only
+   * moves through contributions.
+   */
+  onSubmit: (pursuit: NewPursuit) => Promise<Result>
 }
+
+/** An amount as the field shows it: blank when there is none. */
+const amountInput = (value: number | undefined) => (value === undefined ? '' : String(value))
 
 function defaultTarget(from: Date): string {
   const d = new Date(from)
@@ -26,42 +36,50 @@ function defaultTarget(from: Date): string {
 }
 
 /**
- * The fields. Mounted only while the dialog is open, so every open starts
- * blank and re-reads today's date — no reset effect needed.
+ * The fields. Mounted only while the dialog is open, so every open starts from
+ * the goal being edited, or blank with today's date — no reset effect needed.
  */
-function PursuitForm({ area, onClose, onCreate }: Omit<PursuitModalProps, 'open'>) {
-  const [name, setName] = useState('')
-  const [kind, setKind] = useState<string>(area.kinds[0])
-  const [targetInput, setTargetInput] = useState('')
+function PursuitForm({ area, editing, onClose, onSubmit }: Omit<PursuitModalProps, 'open'>) {
+  const { format, symbol } = useMoney()
+  const [name, setName] = useState(editing?.name ?? '')
+  const [kind, setKind] = useState<string>(editing?.kind ?? area.kinds[0])
+  const [targetInput, setTargetInput] = useState(amountInput(editing?.target))
   const [savedInput, setSavedInput] = useState('')
-  const [createdAt, setCreatedAt] = useState(() => toDateInput(new Date()))
-  const [targetAt, setTargetAt] = useState(() => defaultTarget(new Date()))
+  const [createdAt, setCreatedAt] = useState(() => editing?.createdAt ?? toDateInput(new Date()))
+  const [targetAt, setTargetAt] = useState(() => editing?.targetAt ?? defaultTarget(new Date()))
   const [error, setError] = useState<string | null>(null)
+  // A write in flight — a second press would send it twice.
+  const [saving, setSaving] = useState(false)
 
   const start = parseDateInput(createdAt)
   const target = parseDateInput(targetAt)
   const span = start && target ? daysBetween(start, target) : null
 
   const targetAmount = parseAmount(targetInput)
-  const savedAmount = parseAmount(savedInput)
+  // Editing shows the balance the goal already holds; it is not a field here.
+  const savedAmount = editing ? (editing.saved ?? null) : parseAmount(savedInput)
   const left =
     area.money && targetAmount && Number.isFinite(targetAmount)
       ? targetAmount - (Number.isFinite(savedAmount ?? 0) ? (savedAmount ?? 0) : 0)
       : null
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (saving) return
     if (area.money && (Number.isNaN(targetAmount) || Number.isNaN(savedAmount))) {
       setError('Amounts have to be numbers.')
       return
     }
-    const result = onCreate({
+    setSaving(true)
+    const result = await onSubmit({
       name,
       kind,
       createdAt,
       targetAt,
-      ...(area.money ? { target: targetAmount ?? undefined, saved: savedAmount ?? undefined } : null),
+      ...(area.money ? { target: targetAmount ?? undefined } : null),
+      ...(area.money && !editing ? { saved: savedAmount ?? undefined } : null),
     })
+    setSaving(false)
     if (result.ok) onClose()
     else setError(result.reason)
   }
@@ -124,32 +142,34 @@ function PursuitForm({ area, onClose, onCreate }: Omit<PursuitModalProps, 'open'
               setTargetInput(e.target.value)
               setError(null)
             }}
-            trailing="€ · optional"
+            trailing={`${symbol} · optional`}
           />
-          <Input
-            label="Already put aside"
-            type="number"
-            inputMode="decimal"
-            min={0}
-            step="0.01"
-            value={savedInput}
-            placeholder="0"
-            onChange={(e) => {
-              setSavedInput(e.target.value)
-              setError(null)
-            }}
-            trailing="€ · optional"
-          />
+          {!editing ? (
+            <Input
+              label="Already put aside"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              value={savedInput}
+              placeholder="0"
+              onChange={(e) => {
+                setSavedInput(e.target.value)
+                setError(null)
+              }}
+              trailing={`${symbol} · optional`}
+            />
+          ) : null}
         </div>
       ) : null}
 
       {left !== null && Number.isFinite(left) ? (
         <span className={styles.span}>
           {left > 0
-            ? `${formatMoney(left)} to go.`
+            ? `${format(left)} to go.`
             : left === 0
               ? 'Already there — the target is covered.'
-              : `${formatMoney(-left)} past the target.`}
+              : `${format(-left)} past the target.`}
         </span>
       ) : null}
 
@@ -195,8 +215,8 @@ function PursuitForm({ area, onClose, onCreate }: Omit<PursuitModalProps, 'open'
       ) : null}
 
       <div className={styles.actions}>
-        <Button type="submit" size="md">
-          Create goal
+        <Button type="submit" size="md" disabled={saving}>
+          {saving ? (editing ? 'Saving…' : 'Creating…') : editing ? 'Save changes' : 'Create goal'}
         </Button>
         <Button type="button" variant="subtle" size="md" onClick={onClose}>
           Cancel
@@ -206,11 +226,31 @@ function PursuitForm({ area, onClose, onCreate }: Omit<PursuitModalProps, 'open'
   )
 }
 
-/** Create a pursuit. Name first, on purpose — the kind is the easy part. */
-export function PursuitModal({ open, area, onClose, onCreate }: PursuitModalProps) {
+/**
+ * Create a pursuit, or edit one. Name first, on purpose — the kind is the easy
+ * part. Keyed on the goal so moving from one edit to another starts fresh.
+ */
+export function PursuitModal({ open, area, editing, onClose, onSubmit }: PursuitModalProps) {
   return (
-    <Modal open={open} title={area.modalTitle} subtitle={area.modalSubtitle} onClose={onClose}>
-      <PursuitForm area={area} onClose={onClose} onCreate={onCreate} />
+    <Modal
+      open={open}
+      title={editing ? `Edit ${editing.name}` : area.modalTitle}
+      subtitle={
+        editing
+          ? area.money
+            ? 'Change anything but the balance — that moves through contributions.'
+            : 'Steps stay as they are; change them on the card.'
+          : area.modalSubtitle
+      }
+      onClose={onClose}
+    >
+      <PursuitForm
+        key={editing?.id ?? 'new'}
+        area={area}
+        editing={editing}
+        onClose={onClose}
+        onSubmit={onSubmit}
+      />
     </Modal>
   )
 }

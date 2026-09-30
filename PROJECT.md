@@ -147,8 +147,22 @@ another copy of the card and grid.** The area config carries the page copy as
 well as the kinds, so the two pages read differently without branching.
 
 State: one `PursuitsProvider` component, mounted once per area with that area's
-own context object (`SavingsContext`, `GrowthContext`), so the two lists never
-see each other. `useSavings()` and `useGrowth()` are one-line wrappers.
+own context object (`SavingsContext`, `GrowthContext`, `DreamsContext`) and its
+`area` prop, so the lists never see each other. `useSavings()`, `useGrowth()`
+and `useDreams()` are one-line wrappers.
+
+- **Each provider loads and saves through `/api/pursuits?area=`.** Writes wait
+  for the server and apply what it returns — a contribution comes back with
+  the clamped balance, a toggled step with the state the server settled on —
+  rather than guessing locally.
+- **Every action returns `Promise<Result>`.** The provider runs the cheap
+  checks first so a typo gets an instant answer; the server repeats all of
+  them and has the final word.
+- **A card runs one write at a time.** While one is in flight its buttons are
+  disabled, so a double click cannot send a step or a contribution twice.
+- **The empty screen waits for the load.** Until the list arrives, "nothing
+  yet" is a guess, so the page shows a loading line — or the error with a
+  retry — instead of the welcome.
 
 **Rules:**
 
@@ -173,23 +187,59 @@ see each other. `useSavings()` and `useGrowth()` are one-line wrappers.
 - **Creation happens in a modal**, not inline on the page like task types do.
   The name field is first, before the kind picker — you know what you're after
   before you know which box it goes in.
+- **Editing reuses that modal**, opened from the pencil on a card and filled
+  with the goal as it is. Everything the create form set can change — name,
+  kind, dates, target amount, a dream's icon and picture — **except the area**
+  (a goal does not move between pages) **and the balance**, which only moves
+  through contributions so an edit cannot quietly rewrite how much has gone in.
+  Steps are untouched; they are edited on the card.
+- `PATCH /api/pursuits/{id}` takes **the whole form, not a diff**: a blank
+  image or target clears it. A goal may keep its own name; taking another
+  goal's name in the same area is refused, case-insensitively. Every check
+  runs before anything is written, so a rejected edit changes nothing.
 - **Steps are added after creation**, from the pursuit's own card. They are the
   rungs: 70kg, 75kg, 80kg, or learn CI, learn CD, wire up Actions, deploy to
   the VPS. Progress is steps done over steps total; no steps means 0%.
-- **Savings has no steps** (`steps: false`). A savings goal is measured by its
-  balance, and a checklist next to that is two answers to the same question —
-  so the card shows a number, a bar and a contribution field, and nothing else.
-  The store still carries `steps` for every pursuit; the savings card simply
-  never renders them.
+- **Money steps are payments, never words.** Every savings kind — saving,
+  investment, debt, bills — lays its goal out as amounts: put aside 500 a
+  month, and a 6000 target becomes twelve steps of 500. A step carries either a
+  `label` (growth, dreams) or an `amount` (money areas), never both; the
+  server refuses the wrong one for the area, and a CHECK constraint backs it.
+- **Payments are added as amount × count**, so 500 × 12 is one request
+  (`count` 1–60, a goal holds up to 120 steps). Identical payments are fine;
+  worded steps are still unique within their goal.
+- **Ticking a payment moves its money.** Ticking adds the amount to the
+  balance, unticking takes it back out, clamped at zero like any
+  contribution. The free contribution field stays for amounts that match no
+  step. **Removing a ticked payment keeps its money** — the step was the plan,
+  the money is already put aside; a negative contribution takes it back out.
+- **Money still wins the bar.** With a target, the bar and "done" come from the
+  balance, and the payments read as "3 of 12 payments made". Without one, the
+  payments drive the bar. The planned total is compared to the target as a
+  hint — "€1,000 more planned than the target", "€500 of the target not
+  planned yet" — and never blocks anything.
 - Dates are stored as **`yyyy-mm-dd` strings**, the format `<input type="date">`
   speaks. Parse them with `parseDateInput` (`frontend/src/lib/date.ts`) and never with
   `new Date(value)` — that reads them as UTC and loses a day west of Greenwich.
 
 **Money** (savings only, gated on `PursuitArea.money`):
 
-- **Euros, via one constant.** `CURRENCY` and `formatMoney` live in
-  `frontend/src/data/pursuits.ts` — nothing else should hardcode a symbol or a locale,
-  so switching currency later, or making it a per-user setting, is one edit.
+- **Currency is per account**: EUR, USD, GBP, CHF or RSD, picked on the
+  profile's Account tab and stored on `users.currency` (default EUR, so every
+  account from before the setting stays in euros). It rides on the account
+  rather than the profile settings because every page that shows money needs
+  it, and the session already holds the account.
+- **Switching relabels, it never converts.** 500 in euros becomes 500 in
+  pounds; there are no exchange rates anywhere in the app. The picker says so.
+- **Every amount goes through `useMoney()`** (`frontend/src/pursuits/useMoney.ts`),
+  which formats in the account's currency and gives the field prefix. Nothing
+  hardcodes a symbol or a locale — `formatMoney` and `currencySymbol` in
+  `frontend/src/data/pursuits.ts` take the currency explicitly. The list is
+  closed on both ends: `CURRENCIES` on the client, the `Currency` enum plus a
+  CHECK constraint on the server. Adding one means all three.
+- **Its own endpoint**, `PATCH /api/account/currency`, so the picker does not
+  resend name and email. An unknown code is refused by name: "Pick one of
+  EUR, USD, GBP, CHF, RSD."
 - Both amounts are **optional**. A goal with no target still takes
   contributions and just shows a running total.
 - **A money goal measures itself in money.** When `target > 0` the progress bar
@@ -317,11 +367,10 @@ reminders actually get delivered in-app.
 ## Known gaps
 
 - **Part of the frontend is not wired to the backend yet.** Sign-in, custom
-  task types, today's tasks and the account half of the profile are. Goals
-  still live in `PursuitsProvider` state, reminders and channels in
-  `ProfileProvider`; both vanish on reload and reset when another account signs
-  in. Every consumer reads through `useSavings()`, `useGrowth()`, `useDreams()`
-  or `useProfile()`, so only the providers need to change.
+  task types, day tasks, goals and the account half of the profile are. Goals
+  are too. Reminders and channels still live in `ProfileProvider` state; they
+  vanish on reload and reset when another account signs in. Every consumer
+  reads through `useProfile()`, so only the provider needs to change.
 - **No password reset or email verification.** Both need outgoing email.
   Apple and Google sign-in were removed from the auth screens until OAuth
   exists.

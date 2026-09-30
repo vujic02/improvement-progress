@@ -85,9 +85,9 @@ function AccountScope() {
   return (
     <TaskTypesProvider key={user?.id ?? 'signed-out'}>
       <DaysProvider>
-        <PursuitsProvider context={SavingsContext}>
-          <PursuitsProvider context={GrowthContext}>
-            <PursuitsProvider context={DreamsContext}>
+        <PursuitsProvider area="savings" context={SavingsContext}>
+          <PursuitsProvider area="growth" context={GrowthContext}>
+            <PursuitsProvider area="dreams" context={DreamsContext}>
               <ProfileProvider>
                 <Screen />
               </ProfileProvider>
