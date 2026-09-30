@@ -1,5 +1,7 @@
 package com.kaizen.pursuit;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -13,6 +15,9 @@ import jakarta.persistence.Table;
 /**
  * A rung on the way to a pursuit: 70kg, 75kg, 80kg, or learn CI, learn CD,
  * wire up Actions. Progress is steps done over steps total.
+ *
+ * <p>In a money area a step is a payment instead - an amount and no label -
+ * and ticking it moves that amount into the goal's balance.
  */
 @Entity
 @Table(name = "pursuit_steps")
@@ -29,8 +34,13 @@ public class PursuitStep {
     @JoinColumn(name = "pursuit_id", nullable = false)
     private Pursuit pursuit;
 
-    @Column(nullable = false, length = LABEL_MAX)
+    /** Growth and dream steps. Null on a money step. */
+    @Column(length = LABEL_MAX)
     private String label;
+
+    /** Money steps. Null on a worded one. */
+    @Column(precision = 15, scale = 2)
+    private BigDecimal amount;
 
     @Column(nullable = false)
     private boolean done;
@@ -50,6 +60,12 @@ public class PursuitStep {
         this.done = false;
     }
 
+    public static PursuitStep payment(Pursuit pursuit, BigDecimal amount, int sortOrder) {
+        PursuitStep step = new PursuitStep(pursuit, null, sortOrder);
+        step.amount = amount;
+        return step;
+    }
+
     public Long getId() {
         return id;
     }
@@ -60,6 +76,10 @@ public class PursuitStep {
 
     public String getLabel() {
         return label;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
     }
 
     public boolean isDone() {

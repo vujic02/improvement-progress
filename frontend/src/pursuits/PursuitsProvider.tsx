@@ -2,16 +2,23 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import {
   MAX_AMOUNT,
   PURSUIT_NAME_MAX,
+  STEP_BATCH_MAX,
   STEP_NAME_MAX,
   formatMoney,
   safeImageUrl,
   type Pursuit,
-  type PursuitStep,
 } from '../data/pursuits'
 import { del, failure, get, patch, post } from '../lib/api'
 import { parseDateInput } from '../lib/date'
 import { useSession } from '../session/context'
-import type { NewPursuit, PursuitAreaId, PursuitContext, PursuitEdit, Result } from './context'
+import type {
+  NewPursuit,
+  NewStep,
+  PursuitAreaId,
+  PursuitContext,
+  PursuitEdit,
+  Result,
+} from './context'
 
 /**
  * The cheap checks `add` and `update` share, run before a request so a typo
@@ -118,16 +125,6 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
     setPursuits((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
   }, [])
 
-  /** Applies `edit` to the steps of one pursuit. */
-  const editSteps = useCallback(
-    (pursuitId: string, edit: (steps: PursuitStep[]) => PursuitStep[]) => {
-      setPursuits((prev) =>
-        prev.map((p) => (p.id === pursuitId ? { ...p, steps: edit(p.steps) } : p)),
-      )
-    },
-    [],
-  )
-
   const add = useCallback(
     async (fields: NewPursuit): Promise<Result> => {
       const checked = checkForm(fields, pursuits)
@@ -191,56 +188,73 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
   }, [])
 
   const addStep = useCallback(
-    async (pursuitId: string, label: string): Promise<Result> => {
-      const text = label.trim()
-      if (!text) return { ok: false, reason: 'Describe the step first.' }
-      if (text.length > STEP_NAME_MAX) {
-        return { ok: false, reason: `Keep it to ${STEP_NAME_MAX} characters.` }
-      }
-
-      const pursuit = pursuits.find((p) => p.id === pursuitId)
-      if (pursuit?.steps.some((s) => s.label.toLowerCase() === text.toLowerCase())) {
-        return { ok: false, reason: 'That step is already on the list.' }
+    async (pursuitId: string, step: NewStep): Promise<Result> => {
+      let body: NewStep
+      if ('amount' in step) {
+        const count = step.count ?? 1
+        if (!Number.isFinite(step.amount) || step.amount <= 0) {
+          return { ok: false, reason: 'Enter an amount above zero.' }
+        }
+        if (step.amount > MAX_AMOUNT) {
+          return { ok: false, reason: `Keep amounts under ${formatMoney(MAX_AMOUNT)}.` }
+        }
+        if (!Number.isInteger(count) || count < 1 || count > STEP_BATCH_MAX) {
+          return { ok: false, reason: `Add between 1 and ${STEP_BATCH_MAX} at a time.` }
+        }
+        body = { amount: step.amount, count }
+      } else {
+        const text = step.label.trim()
+        if (!text) return { ok: false, reason: 'Describe the step first.' }
+        if (text.length > STEP_NAME_MAX) {
+          return { ok: false, reason: `Keep it to ${STEP_NAME_MAX} characters.` }
+        }
+        const pursuit = pursuits.find((p) => p.id === pursuitId)
+        if (pursuit?.steps.some((s) => s.label?.toLowerCase() === text.toLowerCase())) {
+          return { ok: false, reason: 'That step is already on the list.' }
+        }
+        body = { label: text }
       }
 
       try {
-        const step = await post<PursuitStep>(`/api/pursuits/${pursuitId}/steps`, { label: text })
-        editSteps(pursuitId, (steps) => [...steps, step])
+        // The whole goal comes back: a batch of payments is more than one step.
+        replace(await post<Pursuit>(`/api/pursuits/${pursuitId}/steps`, body))
         return { ok: true }
       } catch (e) {
         return failure(e)
       }
     },
-    [pursuits, editSteps],
+    [pursuits, replace],
   )
 
   const toggleStep = useCallback(
     async (pursuitId: string, stepId: string): Promise<Result> => {
       try {
         // No body: the server flips whatever it has, so two devices cannot
-        // talk each other back into the state they started from.
-        const step = await patch<PursuitStep>(`/api/pursuits/${pursuitId}/steps/${stepId}`)
-        editSteps(pursuitId, (steps) => steps.map((s) => (s.id === stepId ? step : s)))
+        // talk each other back into the state they started from. The whole
+        // goal comes back, because ticking a payment moves the balance.
+        replace(await patch<Pursuit>(`/api/pursuits/${pursuitId}/steps/${stepId}`))
         return { ok: true }
       } catch (e) {
         return failure(e)
       }
     },
-    [editSteps],
+    [replace],
   )
 
-  const removeStep = useCallback(
-    async (pursuitId: string, stepId: string): Promise<Result> => {
-      try {
-        await del(`/api/pursuits/${pursuitId}/steps/${stepId}`)
-        editSteps(pursuitId, (steps) => steps.filter((s) => s.id !== stepId))
-        return { ok: true }
-      } catch (e) {
-        return failure(e)
-      }
-    },
-    [editSteps],
-  )
+  const removeStep = useCallback(async (pursuitId: string, stepId: string): Promise<Result> => {
+    try {
+      // A ticked payment's money stays in the balance — the step was the plan.
+      await del(`/api/pursuits/${pursuitId}/steps/${stepId}`)
+      setPursuits((prev) =>
+        prev.map((p) =>
+          p.id === pursuitId ? { ...p, steps: p.steps.filter((s) => s.id !== stepId) } : p,
+        ),
+      )
+      return { ok: true }
+    } catch (e) {
+      return failure(e)
+    }
+  }, [])
 
   const contribute = useCallback(
     async (pursuitId: string, amount: number): Promise<Result> => {

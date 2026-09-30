@@ -64,5 +64,6 @@ export const SAVINGS_AREA: PursuitArea = {
     "Start with one thing you're putting money against — a buffer, a first investment, a card you want gone. Set what it costs, then log what you pay in.",
   emptyCta: 'Add your first goal',
   money: true,
-  steps: false,
+  stepPlaceholder: 'Amount',
+  noSteps: 'No payments planned yet. Split the target into what you can put aside — 500 × 12 lays out a year.',
 }

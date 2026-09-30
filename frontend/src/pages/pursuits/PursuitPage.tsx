@@ -249,7 +249,7 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
                     onContribute={
                       area.money ? (value) => contribute(pursuit.id, value) : undefined
                     }
-                    onAddStep={(label) => addStep(pursuit.id, label)}
+                    onAddStep={(step) => addStep(pursuit.id, step)}
                     onToggleStep={(stepId) => toggleStep(pursuit.id, stepId)}
                     onRemoveStep={(stepId) => removeStep(pursuit.id, stepId)}
                   />

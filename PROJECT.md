@@ -200,11 +200,24 @@ and `useDreams()` are one-line wrappers.
 - **Steps are added after creation**, from the pursuit's own card. They are the
   rungs: 70kg, 75kg, 80kg, or learn CI, learn CD, wire up Actions, deploy to
   the VPS. Progress is steps done over steps total; no steps means 0%.
-- **Savings has no steps** (`steps: false`). A savings goal is measured by its
-  balance, and a checklist next to that is two answers to the same question —
-  so the card shows a number, a bar and a contribution field, and nothing else.
-  The store still carries `steps` for every pursuit; the savings card simply
-  never renders them.
+- **Money steps are payments, never words.** Every savings kind — saving,
+  investment, debt, bills — lays its goal out as amounts: put aside 500 a
+  month, and a 6000 target becomes twelve steps of 500. A step carries either a
+  `label` (growth, dreams) or an `amount` (money areas), never both; the
+  server refuses the wrong one for the area, and a CHECK constraint backs it.
+- **Payments are added as amount × count**, so 500 × 12 is one request
+  (`count` 1–60, a goal holds up to 120 steps). Identical payments are fine;
+  worded steps are still unique within their goal.
+- **Ticking a payment moves its money.** Ticking adds the amount to the
+  balance, unticking takes it back out, clamped at zero like any
+  contribution. The free contribution field stays for amounts that match no
+  step. **Removing a ticked payment keeps its money** — the step was the plan,
+  the money is already put aside; a negative contribution takes it back out.
+- **Money still wins the bar.** With a target, the bar and "done" come from the
+  balance, and the payments read as "3 of 12 payments made". Without one, the
+  payments drive the bar. The planned total is compared to the target as a
+  hint — "€1,000 more planned than the target", "€500 of the target not
+  planned yet" — and never blocks anything.
 - Dates are stored as **`yyyy-mm-dd` strings**, the format `<input type="date">`
   speaks. Parse them with `parseDateInput` (`frontend/src/lib/date.ts`) and never with
   `new Date(value)` — that reads them as UTC and loses a day west of Greenwich.

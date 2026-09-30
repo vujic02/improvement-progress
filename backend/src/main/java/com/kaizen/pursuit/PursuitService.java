@@ -15,7 +15,6 @@ import com.kaizen.pursuit.dto.ContributeRequest;
 import com.kaizen.pursuit.dto.NewPursuitRequest;
 import com.kaizen.pursuit.dto.NewStepRequest;
 import com.kaizen.pursuit.dto.PursuitResponse;
-import com.kaizen.pursuit.dto.StepResponse;
 import com.kaizen.pursuit.dto.UpdatePursuitRequest;
 import com.kaizen.pursuit.dto.UpdateStepRequest;
 
@@ -25,6 +24,12 @@ import com.kaizen.pursuit.dto.UpdateStepRequest;
  */
 @Service
 public class PursuitService {
+
+    /** 500 x 60 is five years of monthly payments - past that is a typo. */
+    static final int STEP_BATCH_MAX = 60;
+
+    /** Per goal, worded or money. Keeps a card and its response a sane size. */
+    static final int STEPS_MAX = 120;
 
     private final PursuitRepository repo;
 
@@ -110,37 +115,92 @@ public class PursuitService {
         repo.delete(require(userId, id));
     }
 
+    /**
+     * Adds a worded step to a growth goal or a dream, or payments to a money
+     * goal - {@code count} identical ones, so 500 x 12 lays out a year in one
+     * request. Returns the whole goal, since a batch is more than one step.
+     */
     @Transactional
-    public StepResponse addStep(Long userId, Long pursuitId, NewStepRequest request) {
+    public PursuitResponse addStep(Long userId, Long pursuitId, NewStepRequest request) {
         Pursuit pursuit = require(userId, pursuitId);
+        int next = pursuit.getSteps().size();
 
-        String label = request.label().trim();
-        if (label.isEmpty()) {
-            throw ApiException.badRequest("Describe the step first.");
-        }
-        if (label.length() > PursuitStep.LABEL_MAX) {
-            throw ApiException.badRequest("Keep it to " + PursuitStep.LABEL_MAX + " characters.");
-        }
-        boolean taken = pursuit.getSteps().stream()
-                .anyMatch(step -> step.getLabel().equalsIgnoreCase(label));
-        if (taken) {
-            throw ApiException.conflict("That step is already on the list.");
+        if (pursuit.getArea().isMoney()) {
+            if (request.label() != null && !request.label().isBlank()) {
+                throw ApiException.badRequest("Steps here are amounts, not words.");
+            }
+            BigDecimal amount = request.amount();
+            if (amount == null || amount.signum() <= 0) {
+                throw ApiException.badRequest("Enter an amount above zero.");
+            }
+            if (amount.compareTo(Pursuit.MAX_AMOUNT) > 0) {
+                throw ApiException.badRequest("That amount is too large.");
+            }
+            int count = request.count() == null ? 1 : request.count();
+            if (count < 1 || count > STEP_BATCH_MAX) {
+                throw ApiException.badRequest("Add between 1 and " + STEP_BATCH_MAX + " at a time.");
+            }
+            if (next + count > STEPS_MAX) {
+                throw ApiException.badRequest("A goal holds up to " + STEPS_MAX + " steps.");
+            }
+            for (int i = 0; i < count; i++) {
+                pursuit.getSteps().add(PursuitStep.payment(pursuit, amount, next + i));
+            }
+        } else {
+            if (request.amount() != null) {
+                throw ApiException.badRequest("Goals on this page do not carry amounts.");
+            }
+            if (request.count() != null && request.count() != 1) {
+                throw ApiException.badRequest("Add one step at a time.");
+            }
+            String label = request.label() == null ? "" : request.label().trim();
+            if (label.isEmpty()) {
+                throw ApiException.badRequest("Describe the step first.");
+            }
+            if (label.length() > PursuitStep.LABEL_MAX) {
+                throw ApiException.badRequest("Keep it to " + PursuitStep.LABEL_MAX + " characters.");
+            }
+            boolean taken = pursuit.getSteps().stream()
+                    .anyMatch(step -> label.equalsIgnoreCase(step.getLabel()));
+            if (taken) {
+                throw ApiException.conflict("That step is already on the list.");
+            }
+            if (next + 1 > STEPS_MAX) {
+                throw ApiException.badRequest("A goal holds up to " + STEPS_MAX + " steps.");
+            }
+            pursuit.getSteps().add(new PursuitStep(pursuit, label, next));
         }
 
-        PursuitStep step = new PursuitStep(pursuit, label, pursuit.getSteps().size());
-        pursuit.getSteps().add(step);
         repo.flush();
-        return StepResponse.of(step);
+        return PursuitResponse.of(pursuit);
     }
 
-    /** No {@code done} in the body flips the step, which is what the card wants. */
+    /**
+     * No {@code done} in the body flips the step, which is what the card wants.
+     * A payment moves its amount with it: ticking puts it into the balance,
+     * unticking takes it back out, clamped at zero like any contribution.
+     * Returns the whole goal, because the balance may have moved too.
+     */
     @Transactional
-    public StepResponse updateStep(Long userId, Long pursuitId, Long stepId, UpdateStepRequest request) {
-        PursuitStep step = step(require(userId, pursuitId), stepId);
-        step.setDone(request.done() == null ? !step.isDone() : request.done());
-        return StepResponse.of(step);
+    public PursuitResponse updateStep(Long userId, Long pursuitId, Long stepId, UpdateStepRequest request) {
+        Pursuit pursuit = require(userId, pursuitId);
+        PursuitStep step = step(pursuit, stepId);
+
+        boolean done = request.done() == null ? !step.isDone() : request.done();
+        if (done != step.isDone() && step.getAmount() != null) {
+            BigDecimal saved = pursuit.getSaved() == null ? BigDecimal.ZERO : pursuit.getSaved();
+            BigDecimal next = done ? saved.add(step.getAmount()) : saved.subtract(step.getAmount());
+            pursuit.setSaved(next.max(BigDecimal.ZERO));
+        }
+        step.setDone(done);
+        return PursuitResponse.of(pursuit);
     }
 
+    /**
+     * Removing a ticked payment leaves its money in the balance: the step was
+     * the plan, the money is already put aside. Taking it back out is a
+     * negative contribution.
+     */
     @Transactional
     public void removeStep(Long userId, Long pursuitId, Long stepId) {
         Pursuit pursuit = require(userId, pursuitId);

@@ -28,6 +28,12 @@ export interface NewPursuit {
  */
 export type PursuitEdit = Omit<NewPursuit, 'saved'>
 
+/**
+ * A worded step for growth and dreams, or payments for a money area —
+ * `count` identical ones, so 500 × 12 lays out a year in one go.
+ */
+export type NewStep = { label: string } | { amount: number; count?: number }
+
 export interface PursuitStore {
   /** Newest first — the order the grid renders in. */
   pursuits: Pursuit[]
@@ -45,8 +51,12 @@ export interface PursuitStore {
   /** The same checks as `add`, except a goal may keep its own name. */
   update: (id: string, edit: PursuitEdit) => Promise<Result>
   remove: (id: string) => Promise<Result>
-  /** Rejects blank, long and duplicate steps within the same pursuit. */
-  addStep: (pursuitId: string, label: string) => Promise<Result>
+  /**
+   * Rejects blank, long and duplicate worded steps within the same pursuit,
+   * and payments that are not a positive amount.
+   */
+  addStep: (pursuitId: string, step: NewStep) => Promise<Result>
+  /** Ticking a payment puts its amount into the balance; unticking takes it out. */
   toggleStep: (pursuitId: string, stepId: string) => Promise<Result>
   removeStep: (pursuitId: string, stepId: string) => Promise<Result>
   /**

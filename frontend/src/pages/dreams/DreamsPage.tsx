@@ -175,7 +175,7 @@ export function DreamsPage() {
                   dream={dream}
                   onEdit={() => setEditingId(dream.id)}
                   onRemove={() => remove(dream.id)}
-                  onAddStep={(label) => addStep(dream.id, label)}
+                  onAddStep={(label) => addStep(dream.id, { label })}
                   onToggleStep={(stepId) => toggleStep(dream.id, stepId)}
                   onRemoveStep={(stepId) => removeStep(dream.id, stepId)}
                 />

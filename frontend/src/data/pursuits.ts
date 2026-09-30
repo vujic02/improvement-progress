@@ -6,9 +6,15 @@ import type { IconName } from '../components/Icon'
  * (`#/savings`) and growth (`#/self-improvement`) — and they differ only in the
  * kinds on offer and the words around them, which is what a `PursuitArea` is.
  */
+/**
+ * A rung on the way. Growth goals and dreams write it in words (`label`); money
+ * goals lay it out as a payment (`amount`) — a 6000 target as twelve steps of
+ * 500 — and ticking one moves its amount into the balance. Exactly one is set.
+ */
 export interface PursuitStep {
   id: string
-  label: string
+  label?: string
+  amount?: number
   done: boolean
 }
 
@@ -40,6 +46,9 @@ export const PURSUIT_NAME_MAX = 40
 
 /** Steps get more room than names — they read as short sentences. */
 export const STEP_NAME_MAX = 60
+
+/** Payments added in one go: 500 × 60 is five years of months. */
+export const STEP_BATCH_MAX = 60
 
 /** How far ahead the target date starts when the modal opens. */
 export const DEFAULT_TARGET_MONTHS = 6
@@ -83,23 +92,17 @@ export interface PursuitArea {
   modalTitle: string
   modalSubtitle: string
   namePlaceholder: string
-  /**
-   * The area breaks its pursuits into steps. Defaults to true; savings sets it
-   * false — a savings goal is measured by its balance, and a checklist beside
-   * that is two answers to the same question.
-   */
-  steps?: boolean
-  /** Placeholder in a card's add-a-step field. Step areas only. */
+  /** Placeholder in a card's add-a-step field. */
   stepPlaceholder?: string
-  /** Shown on a card that has no steps yet. Step areas only. */
+  /** Shown on a card that has no steps yet. */
   noSteps?: string
   emptyTitle: string
   emptyText: string
   emptyCta: string
   /**
    * The area deals in money: the modal asks for a target and a starting
-   * balance, and cards take contributions. Growth goals and dreams do not —
-   * a bench press has no price.
+   * balance, cards take contributions, and steps are payments rather than
+   * words. Growth goals and dreams do not — a bench press has no price.
    */
   money?: boolean
 }

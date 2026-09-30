@@ -165,7 +165,7 @@ export function DreamCard({
                   color={DREAM_COLOR}
                   size={18}
                   onToggle={() => void run(() => onToggleStep(step.id))}
-                  label={step.label}
+                  label={step.label ?? ''}
                 />
                 <span
                   className={[styles.stepLabel, step.done ? styles.stepDone : '']

@@ -18,7 +18,6 @@ import com.kaizen.pursuit.dto.ContributeRequest;
 import com.kaizen.pursuit.dto.NewPursuitRequest;
 import com.kaizen.pursuit.dto.NewStepRequest;
 import com.kaizen.pursuit.dto.PursuitResponse;
-import com.kaizen.pursuit.dto.StepResponse;
 import com.kaizen.pursuit.dto.UpdatePursuitRequest;
 import com.kaizen.pursuit.dto.UpdateStepRequest;
 
@@ -66,15 +65,19 @@ public class PursuitController {
         return ResponseEntity.noContent().build();
     }
 
+    /** A worded step, or {@code count} payments of {@code amount}. Returns the whole goal. */
     @PostMapping("/{id}/steps")
-    public StepResponse addStep(@AuthenticationPrincipal Long userId, @PathVariable Long id,
-            @Valid @RequestBody NewStepRequest request) {
+    public PursuitResponse addStep(@AuthenticationPrincipal Long userId, @PathVariable Long id,
+            @RequestBody NewStepRequest request) {
         return service.addStep(userId, id, request);
     }
 
-    /** An empty body flips the step; {@code {"done": true}} sets it outright. */
+    /**
+     * An empty body flips the step; {@code {"done": true}} sets it outright.
+     * Returns the whole goal, since ticking a payment moves the balance.
+     */
     @PatchMapping("/{id}/steps/{stepId}")
-    public StepResponse updateStep(@AuthenticationPrincipal Long userId, @PathVariable Long id,
+    public PursuitResponse updateStep(@AuthenticationPrincipal Long userId, @PathVariable Long id,
             @PathVariable Long stepId, @RequestBody(required = false) UpdateStepRequest request) {
         return service.updateStep(userId, id, stepId,
                 request == null ? new UpdateStepRequest(null) : request);
