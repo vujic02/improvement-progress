@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react'
+import type { CurrencyCode } from '../data/pursuits'
 
 export type Result = { ok: true } | { ok: false; reason: string }
 
@@ -7,6 +8,8 @@ export interface User {
   id: number
   name: string
   email: string
+  /** What money goals are shown in. Relabels amounts, never converts them. */
+  currency: CurrencyCode
 }
 
 /** Mirrors the API's `AuthResponse` record. `expiresIn` is seconds. */
@@ -44,7 +47,7 @@ export interface Session {
   /** Retires every token for the account on the server, then signs out here. */
   signOutEverywhere: () => Promise<Result>
   /** Patches the signed-in account in place — the profile page writes through this. */
-  updateUser: (patch: Partial<Pick<User, 'name' | 'email'>>) => void
+  updateUser: (patch: Partial<Pick<User, 'name' | 'email' | 'currency'>>) => void
 }
 
 export const DEFAULT_NAME = 'Nikola'

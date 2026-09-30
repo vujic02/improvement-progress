@@ -15,7 +15,7 @@ export interface NewPursuit {
   icon?: IconName
   /** Raw, as typed. The store validates and normalises it. */
   image?: string
-  /** Money areas only, in `CURRENCY`. Blank fields arrive as undefined. */
+  /** Money areas only, in the account's currency. Blank fields arrive as undefined. */
   target?: number
   saved?: number
   createdAt: string

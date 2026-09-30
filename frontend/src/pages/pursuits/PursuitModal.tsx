@@ -3,7 +3,6 @@ import { Button, Icon, Input, Modal } from '../../components'
 import {
   DEFAULT_TARGET_MONTHS,
   PURSUIT_NAME_MAX,
-  formatMoney,
   kindMeta,
   parseAmount,
   type Pursuit,
@@ -11,6 +10,7 @@ import {
 } from '../../data/pursuits'
 import { daysBetween, mediumDate, parseDateInput, toDateInput } from '../../lib/date'
 import type { NewPursuit, Result } from '../../pursuits/context'
+import { useMoney } from '../../pursuits/useMoney'
 import styles from './PursuitModal.module.css'
 
 export interface PursuitModalProps {
@@ -40,6 +40,7 @@ function defaultTarget(from: Date): string {
  * the goal being edited, or blank with today's date — no reset effect needed.
  */
 function PursuitForm({ area, editing, onClose, onSubmit }: Omit<PursuitModalProps, 'open'>) {
+  const { format, symbol } = useMoney()
   const [name, setName] = useState(editing?.name ?? '')
   const [kind, setKind] = useState<string>(editing?.kind ?? area.kinds[0])
   const [targetInput, setTargetInput] = useState(amountInput(editing?.target))
@@ -141,7 +142,7 @@ function PursuitForm({ area, editing, onClose, onSubmit }: Omit<PursuitModalProp
               setTargetInput(e.target.value)
               setError(null)
             }}
-            trailing="€ · optional"
+            trailing={`${symbol} · optional`}
           />
           {!editing ? (
             <Input
@@ -156,7 +157,7 @@ function PursuitForm({ area, editing, onClose, onSubmit }: Omit<PursuitModalProp
                 setSavedInput(e.target.value)
                 setError(null)
               }}
-              trailing="€ · optional"
+              trailing={`${symbol} · optional`}
             />
           ) : null}
         </div>
@@ -165,10 +166,10 @@ function PursuitForm({ area, editing, onClose, onSubmit }: Omit<PursuitModalProp
       {left !== null && Number.isFinite(left) ? (
         <span className={styles.span}>
           {left > 0
-            ? `${formatMoney(left)} to go.`
+            ? `${format(left)} to go.`
             : left === 0
               ? 'Already there — the target is covered.'
-              : `${formatMoney(-left)} past the target.`}
+              : `${format(-left)} past the target.`}
         </span>
       ) : null}
 

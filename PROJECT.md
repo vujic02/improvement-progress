@@ -224,9 +224,22 @@ and `useDreams()` are one-line wrappers.
 
 **Money** (savings only, gated on `PursuitArea.money`):
 
-- **Euros, via one constant.** `CURRENCY` and `formatMoney` live in
-  `frontend/src/data/pursuits.ts` — nothing else should hardcode a symbol or a locale,
-  so switching currency later, or making it a per-user setting, is one edit.
+- **Currency is per account**: EUR, USD, GBP, CHF or RSD, picked on the
+  profile's Account tab and stored on `users.currency` (default EUR, so every
+  account from before the setting stays in euros). It rides on the account
+  rather than the profile settings because every page that shows money needs
+  it, and the session already holds the account.
+- **Switching relabels, it never converts.** 500 in euros becomes 500 in
+  pounds; there are no exchange rates anywhere in the app. The picker says so.
+- **Every amount goes through `useMoney()`** (`frontend/src/pursuits/useMoney.ts`),
+  which formats in the account's currency and gives the field prefix. Nothing
+  hardcodes a symbol or a locale — `formatMoney` and `currencySymbol` in
+  `frontend/src/data/pursuits.ts` take the currency explicitly. The list is
+  closed on both ends: `CURRENCIES` on the client, the `Currency` enum plus a
+  CHECK constraint on the server. Adding one means all three.
+- **Its own endpoint**, `PATCH /api/account/currency`, so the picker does not
+  resend name and email. An unknown code is refused by name: "Pick one of
+  EUR, USD, GBP, CHF, RSD."
 - Both amounts are **optional**. A goal with no target still takes
   contributions and just shows a running total.
 - **A money goal measures itself in money.** When `target > 0` the progress bar

@@ -11,7 +11,6 @@ import {
 import {
   STEP_BATCH_MAX,
   STEP_NAME_MAX,
-  formatMoney,
   kindMeta,
   parseAmount,
   type Pursuit,
@@ -20,6 +19,7 @@ import {
 } from '../../data/pursuits'
 import { daysBetween, mediumDate, parseDateInput } from '../../lib/date'
 import type { NewStep, Result } from '../../pursuits/context'
+import { useMoney } from '../../pursuits/useMoney'
 import styles from './PursuitCard.module.css'
 
 export interface PursuitCardProps {
@@ -47,18 +47,22 @@ function countdown(targetAt: string): { text: string; late: boolean } {
 }
 
 /** What a step reads as: its words, or the payment it stands for. */
-const stepText = (step: PursuitStep) =>
-  step.amount !== undefined ? formatMoney(step.amount) : (step.label ?? '')
+const stepText = (step: PursuitStep, format: (value: number) => string) =>
+  step.amount !== undefined ? format(step.amount) : (step.label ?? '')
 
 /**
  * How the planned payments sit against the target — a hint, never a block.
  * Null when there is nothing to compare.
  */
-function planLine(planned: number, goal: number): string | null {
+function planLine(
+  planned: number,
+  goal: number,
+  format: (value: number) => string,
+): string | null {
   if (goal <= 0 || planned <= 0) return null
   const diff = planned - goal
-  if (diff > 0) return `${formatMoney(diff)} more planned than the target.`
-  if (diff < 0) return `${formatMoney(-diff)} of the target not planned yet.`
+  if (diff > 0) return `${format(diff)} more planned than the target.`
+  if (diff < 0) return `${format(-diff)} of the target not planned yet.`
   return 'The payments cover the target exactly.'
 }
 
@@ -73,6 +77,7 @@ export function PursuitCard({
   onToggleStep,
   onRemoveStep,
 }: PursuitCardProps) {
+  const { format, symbol } = useMoney()
   const [draft, setDraft] = useState('')
   // Money areas add payments: an amount, repeated `count` times.
   const [count, setCount] = useState('1')
@@ -109,7 +114,7 @@ export function PursuitCard({
   // money goal with neither a target nor payments just shows its total.
   const showBar = byMoney || !money || total > 0
   const planned = pursuit.steps.reduce((sum, s) => sum + (s.amount ?? 0), 0)
-  const plan = money ? planLine(planned, goal) : null
+  const plan = money ? planLine(planned, goal, format) : null
   // Money out stays its own colour when it is finished; only gains go green.
   const barColor = complete && !meta.spend ? 'var(--accent-green)' : meta.color
   const verb = meta.spend ? 'paid' : 'put aside'
@@ -172,12 +177,12 @@ export function PursuitCard({
           <span className={styles.progressCount}>
             {byMoney ? (
               <>
-                {formatMoney(saved)}
-                <span className={styles.progressOf}> of {formatMoney(goal)}</span>
+                {format(saved)}
+                <span className={styles.progressOf}> of {format(goal)}</span>
               </>
             ) : money && total === 0 ? (
               <>
-                {formatMoney(saved)}
+                {format(saved)}
                 <span className={styles.progressOf}> {verb}</span>
               </>
             ) : (
@@ -192,7 +197,7 @@ export function PursuitCard({
           <span className={styles.plan}>
             {byMoney
               ? `${done} of ${total} payments made.`
-              : `${formatMoney(saved)} ${verb} so far.`}
+              : `${format(saved)} ${verb} so far.`}
             {plan ? ` ${plan}` : null}
           </span>
         ) : null}
@@ -212,7 +217,7 @@ export function PursuitCard({
           }}
         >
           <span className={styles.currency} aria-hidden="true">
-            €
+            {symbol}
           </span>
           <input
             className={styles.contributeInput}
@@ -259,18 +264,18 @@ export function PursuitCard({
                 color={meta.color}
                 size={18}
                 onToggle={() => void run(() => onToggleStep(step.id))}
-                label={stepText(step)}
+                label={stepText(step, format)}
               />
               <span
                 className={[styles.stepLabel, step.done ? styles.stepDone : '']
                   .filter(Boolean)
                   .join(' ')}
               >
-                {stepText(step)}
+                {stepText(step, format)}
               </span>
               <IconButton
                 icon="close"
-                label={`Remove ${stepText(step)}`}
+                label={`Remove ${stepText(step, format)}`}
                 size={14}
                 className={styles.stepRemove}
                 disabled={busy}
@@ -287,7 +292,7 @@ export function PursuitCard({
         {money ? (
           <>
             <span className={styles.currency} aria-hidden="true">
-              €
+              {symbol}
             </span>
             <input
               className={styles.addInput}

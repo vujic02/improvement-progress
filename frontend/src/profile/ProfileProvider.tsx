@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { DEFAULT_CURRENCY, type CurrencyCode } from '../data/pursuits'
 import { DEFAULT_REMINDERS, type Reminder } from '../data/reminders'
 import { failure, getToken, isTokenRemembered, patch, post, setToken } from '../lib/api'
 import { useSession, type AuthResponse, type User } from '../session/context'
@@ -94,6 +95,21 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const currency = user?.currency ?? DEFAULT_CURRENCY
+
+  const setCurrency = useCallback(
+    async (next: CurrencyCode): Promise<Result> => {
+      try {
+        const saved = await patch<User>('/api/account/currency', { currency: next })
+        updateUser({ currency: saved.currency })
+        return { ok: true }
+      } catch (error) {
+        return failure(error)
+      }
+    },
+    [updateUser],
+  )
+
   const updateReminder = useCallback((id: string, changes: Partial<Reminder>) => {
     setReminders((prev) => prev.map((r) => (r.id === id ? { ...r, ...changes } : r)))
   }, [])
@@ -109,6 +125,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       setKeepSignedIn,
       saveAccount,
       changePassword,
+      currency,
+      setCurrency,
       reminders,
       updateReminder,
       paused,
@@ -122,6 +140,8 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       setKeepSignedIn,
       saveAccount,
       changePassword,
+      currency,
+      setCurrency,
       reminders,
       updateReminder,
       paused,

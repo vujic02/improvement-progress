@@ -8,10 +8,11 @@ import {
   SegmentedToggle,
   StatCard,
 } from '../../components'
-import { formatMoney, kindMeta, type PursuitArea } from '../../data/pursuits'
+import { kindMeta, type PursuitArea } from '../../data/pursuits'
 import { APP_NAME } from '../../lib/brand'
 import { daysBetween, mediumDate, parseDateInput } from '../../lib/date'
 import { usePursuitStore, type PursuitContext } from '../../pursuits/context'
+import { useMoney } from '../../pursuits/useMoney'
 import { DashboardLayout } from '../dashboard/DashboardLayout'
 import { PursuitCard } from './PursuitCard'
 import { PursuitModal } from './PursuitModal'
@@ -49,6 +50,7 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
     contribute,
   } = usePursuitStore(context, hookName)
 
+  const { format } = useMoney()
   const [creating, setCreating] = useState(false)
   // Held by id, so the modal reads the goal as it is now rather than a copy
   // taken when the pencil was pressed.
@@ -187,7 +189,7 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
                   <StatCard
                     key={row.kind}
                     label={row.meta.statLabel ?? row.meta.label}
-                    value={formatMoney(row.saved)}
+                    value={format(row.saved)}
                     delta={row.pct}
                     /* Bills are money out — a bigger number is not a gain. */
                     deltaTone={row.meta.spend ? 'neutral' : undefined}

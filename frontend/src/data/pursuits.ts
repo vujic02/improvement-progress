@@ -30,9 +30,9 @@ export interface Pursuit {
   icon?: IconName
   /** An https image address. Always run through `safeImageUrl` first. */
   image?: string
-  /** What it costs, in `CURRENCY`. Only areas with `money` ask for it. */
+  /** What it costs, in the account's currency. Only areas with `money` ask for it. */
   target?: number
-  /** Put aside so far, in `CURRENCY`. Grows through `contribute`. */
+  /** Put aside so far, in the account's currency. Grows through `contribute`. */
   saved?: number
   /** yyyy-mm-dd. Defaults to today but the user may back-date it. */
   createdAt: string
@@ -108,10 +108,16 @@ export interface PursuitArea {
 }
 
 /**
- * Euros, for now. One constant so switching later — or making it a per-user
- * setting — is a single edit rather than a search for "€".
+ * The currencies an account can show its money in, mirroring the server's
+ * `Currency` enum. **Switching relabels, it never converts** — 500 in euros
+ * becomes 500 in pounds. There are no exchange rates anywhere in the app.
  */
-export const CURRENCY = 'EUR'
+export const CURRENCIES = ['EUR', 'USD', 'GBP', 'CHF', 'RSD'] as const
+
+export type CurrencyCode = (typeof CURRENCIES)[number]
+
+/** Every account starts here, and so did every account before the setting existed. */
+export const DEFAULT_CURRENCY: CurrencyCode = 'EUR'
 
 /**
  * Anything larger is a typo, not a savings goal. Guards the formatter and the
@@ -119,16 +125,40 @@ export const CURRENCY = 'EUR'
  */
 export const MAX_AMOUNT = 1_000_000_000
 
-const MONEY_FORMAT = new Intl.NumberFormat('en-IE', {
-  style: 'currency',
-  currency: CURRENCY,
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-})
+const formats = new Map<CurrencyCode, Intl.NumberFormat>()
 
-/** 10000 becomes "€10,000"; 2499.5 becomes "€2,499.5". */
-export function formatMoney(value: number): string {
-  return MONEY_FORMAT.format(value)
+/**
+ * One formatter per currency, built on first use. Same locale for all of them
+ * so grouping reads the same whichever is picked; `narrowSymbol` gives "$"
+ * rather than "US$". CHF and RSD have no narrower form and show their code.
+ */
+function moneyFormat(currency: CurrencyCode): Intl.NumberFormat {
+  let format = formats.get(currency)
+  if (!format) {
+    format = new Intl.NumberFormat('en-IE', {
+      style: 'currency',
+      currency,
+      currencyDisplay: 'narrowSymbol',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })
+    formats.set(currency, format)
+  }
+  return format
+}
+
+/** 10000 in EUR becomes "€10,000"; 2499.5 in GBP becomes "£2,499.5". */
+export function formatMoney(value: number, currency: CurrencyCode): string {
+  return moneyFormat(currency).format(value)
+}
+
+/** "€", "$", "£", "CHF", "RSD" — the prefix on amount fields. */
+export function currencySymbol(currency: CurrencyCode): string {
+  return (
+    moneyFormat(currency)
+      .formatToParts(0)
+      .find((part) => part.type === 'currency')?.value ?? currency
+  )
 }
 
 /** Reads an amount field. Returns null for blank, NaN for anything unusable. */

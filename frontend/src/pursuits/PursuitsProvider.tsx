@@ -4,13 +4,13 @@ import {
   PURSUIT_NAME_MAX,
   STEP_BATCH_MAX,
   STEP_NAME_MAX,
-  formatMoney,
   safeImageUrl,
   type Pursuit,
 } from '../data/pursuits'
 import { del, failure, get, patch, post } from '../lib/api'
 import { parseDateInput } from '../lib/date'
 import { useSession } from '../session/context'
+import { useMoney } from './useMoney'
 import type {
   NewPursuit,
   NewStep,
@@ -29,6 +29,7 @@ import type {
 function checkForm(
   fields: PursuitEdit & { saved?: number },
   others: Pursuit[],
+  format: (value: number) => string,
   self?: string,
 ): { ok: true; name: string; image: string | undefined } | { ok: false; reason: string } {
   const name = fields.name.trim()
@@ -58,7 +59,7 @@ function checkForm(
       return { ok: false, reason: 'Amounts have to be zero or more.' }
     }
     if (amount > MAX_AMOUNT) {
-      return { ok: false, reason: `Keep amounts under ${formatMoney(MAX_AMOUNT)}.` }
+      return { ok: false, reason: `Keep amounts under ${format(MAX_AMOUNT)}.` }
     }
   }
 
@@ -88,6 +89,7 @@ export interface PursuitsProviderProps {
 export function PursuitsProvider({ area, context, children }: PursuitsProviderProps) {
   const { user } = useSession()
   const userId = user?.id
+  const { format } = useMoney()
 
   const [pursuits, setPursuits] = useState<Pursuit[]>([])
   // Signed out there is nothing to load, so loading starts false and stays there.
@@ -127,7 +129,7 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
 
   const add = useCallback(
     async (fields: NewPursuit): Promise<Result> => {
-      const checked = checkForm(fields, pursuits)
+      const checked = checkForm(fields, pursuits, format)
       if (!checked.ok) return checked
 
       try {
@@ -147,12 +149,12 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
         return failure(e)
       }
     },
-    [area, pursuits],
+    [area, pursuits, format],
   )
 
   const update = useCallback(
     async (id: string, fields: PursuitEdit): Promise<Result> => {
-      const checked = checkForm(fields, pursuits, id)
+      const checked = checkForm(fields, pursuits, format, id)
       if (!checked.ok) return checked
 
       try {
@@ -174,7 +176,7 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
         return failure(e)
       }
     },
-    [pursuits, replace],
+    [pursuits, replace, format],
   )
 
   const remove = useCallback(async (id: string): Promise<Result> => {
@@ -196,7 +198,7 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
           return { ok: false, reason: 'Enter an amount above zero.' }
         }
         if (step.amount > MAX_AMOUNT) {
-          return { ok: false, reason: `Keep amounts under ${formatMoney(MAX_AMOUNT)}.` }
+          return { ok: false, reason: `Keep amounts under ${format(MAX_AMOUNT)}.` }
         }
         if (!Number.isInteger(count) || count < 1 || count > STEP_BATCH_MAX) {
           return { ok: false, reason: `Add between 1 and ${STEP_BATCH_MAX} at a time.` }
@@ -223,7 +225,7 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
         return failure(e)
       }
     },
-    [pursuits, replace],
+    [pursuits, replace, format],
   )
 
   const toggleStep = useCallback(
@@ -262,7 +264,7 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
         return { ok: false, reason: 'Enter an amount.' }
       }
       if (Math.abs(amount) > MAX_AMOUNT) {
-        return { ok: false, reason: `Keep amounts under ${formatMoney(MAX_AMOUNT)}.` }
+        return { ok: false, reason: `Keep amounts under ${format(MAX_AMOUNT)}.` }
       }
 
       try {
@@ -274,7 +276,7 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
         return failure(e)
       }
     },
-    [replace],
+    [replace, format],
   )
 
   const value = useMemo(

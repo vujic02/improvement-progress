@@ -96,7 +96,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return () => setUnauthorizedHandler(null)
   }, [signOut])
 
-  const updateUser = useCallback((patch: Partial<Pick<User, 'name' | 'email'>>) => {
+  const updateUser = useCallback((patch: Partial<Pick<User, 'name' | 'email' | 'currency'>>) => {
     setUser((prev) => (prev ? { ...prev, ...patch } : prev))
   }, [])
 

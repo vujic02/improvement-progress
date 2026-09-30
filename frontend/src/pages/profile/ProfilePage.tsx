@@ -11,6 +11,7 @@ import {
   SegmentedToggle,
   Switch,
 } from '../../components'
+import { CURRENCIES, formatMoney, type CurrencyCode } from '../../data/pursuits'
 import { REMINDER_GROUPS, cadenceSummary } from '../../data/reminders'
 import { useDreams } from '../../dreams/context'
 import { useGrowth } from '../../growth/context'
@@ -46,7 +47,15 @@ type Note = { tone: 'ok' | 'bad'; text: string } | null
 
 function AccountTab() {
   const { userName, signOut, signOutEverywhere } = useSession()
-  const { email, keepSignedIn, setKeepSignedIn, saveAccount, changePassword } = useProfile()
+  const {
+    email,
+    keepSignedIn,
+    setKeepSignedIn,
+    saveAccount,
+    changePassword,
+    currency,
+    setCurrency,
+  } = useProfile()
 
   // A field nobody has typed in shows what the session holds, so after a save
   // the form shows what the server stored (it lowercases emails), not the draft.
@@ -65,6 +74,8 @@ function AccountTab() {
 
   const [sessionsError, setSessionsError] = useState<string | null>(null)
   const [endingSessions, setEndingSessions] = useState(false)
+  const [currencyNote, setCurrencyNote] = useState<Note>(null)
+  const [savingCurrency, setSavingCurrency] = useState(false)
 
   const name = draftName ?? userName
   const address = draftAddress ?? email
@@ -102,6 +113,19 @@ function AccountTab() {
     } else {
       setPasswordNote({ tone: 'bad', text: result.reason })
     }
+  }
+
+  const pickCurrency = async (next: CurrencyCode) => {
+    if (savingCurrency || next === currency) return
+    setSavingCurrency(true)
+    setCurrencyNote(null)
+    const result = await setCurrency(next)
+    setSavingCurrency(false)
+    setCurrencyNote(
+      result.ok
+        ? { tone: 'ok', text: `Money now shows in ${next}.` }
+        : { tone: 'bad', text: result.reason },
+    )
   }
 
   const leaveEverywhere = async () => {
@@ -247,6 +271,30 @@ function AccountTab() {
               </Button>
             </div>
           </form>
+        </GlassCard>
+
+        <GlassCard>
+          <SectionHeading
+            title="Currency"
+            subtitle={`What your savings goals are shown in. Switching changes the symbol, not the numbers — ${formatMoney(500, currency)} becomes ${formatMoney(500, currency === 'GBP' ? 'EUR' : 'GBP')}, nothing is converted.`}
+          />
+          <div className={styles.form}>
+            <SegmentedToggle
+              options={CURRENCIES.map((code) => ({ value: code, label: code }))}
+              value={currency}
+              onChange={(code) => void pickCurrency(code)}
+              size="sm"
+              label="Currency"
+            />
+            {currencyNote ? (
+              <span
+                className={currencyNote.tone === 'ok' ? styles.ok : styles.error}
+                role={currencyNote.tone === 'bad' ? 'alert' : 'status'}
+              >
+                {currencyNote.text}
+              </span>
+            ) : null}
+          </div>
         </GlassCard>
 
         <GlassCard>
