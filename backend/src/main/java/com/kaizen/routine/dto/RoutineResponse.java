@@ -1,5 +1,6 @@
 package com.kaizen.routine.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,7 +20,9 @@ public record RoutineResponse(
         List<Integer> weekdays,
         Integer dayOfMonth,
         Integer interval,
-        LocalDate startsOn) {
+        LocalDate startsOn,
+        String pursuitId,
+        BigDecimal amount) {
 
     public static RoutineResponse of(Routine routine) {
         RoutineCadence cadence = routine.getCadence();
@@ -40,6 +43,8 @@ public record RoutineResponse(
                 days,
                 cadence == RoutineCadence.MONTH_DAY ? routine.getDayOfMonth() : null,
                 cadence.usesInterval() ? routine.getInterval() : null,
-                routine.getStartsOn());
+                routine.getStartsOn(),
+                routine.getPursuitId() == null ? null : String.valueOf(routine.getPursuitId()),
+                routine.getAmount());
     }
 }

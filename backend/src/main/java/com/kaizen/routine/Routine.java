@@ -1,5 +1,6 @@
 package com.kaizen.routine;
 
+import java.math.BigDecimal;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -39,6 +40,10 @@ public class Routine {
     @Column(name = "default_key", length = 20)
     private String defaultKey;
 
+    /** The goal it counts toward, if any. Deleting the goal leaves this null. */
+    @Column(name = "pursuit_id")
+    private Long pursuitId;
+
     @Column(nullable = false, length = 80)
     private String label;
 
@@ -55,6 +60,10 @@ public class Routine {
 
     @Column(name = "interval_n")
     private Integer interval;
+
+    /** Money goals only: what a tick adds when the goal has no unpaid payment step left. */
+    @Column(precision = 15, scale = 2)
+    private BigDecimal amount;
 
     /** Every-n schedules count from here, and nothing is filled in before it. */
     @Column(name = "starts_on", nullable = false)
@@ -138,6 +147,20 @@ public class Routine {
 
     public String getDefaultKey() {
         return defaultKey;
+    }
+
+    public Long getPursuitId() {
+        return pursuitId;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    /** Links it to a goal, with the amount a tick pays when there is no step to tick. */
+    public void setGoal(Long pursuitId, BigDecimal amount) {
+        this.pursuitId = pursuitId;
+        this.amount = amount;
     }
 
     public String getLabel() {

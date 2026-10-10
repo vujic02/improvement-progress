@@ -1,5 +1,6 @@
 package com.kaizen.daytask;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -44,6 +45,14 @@ public class DayTask {
     @Column(name = "routine_id")
     private Long routineId;
 
+    /** The payment step ticking this copy ticked, so unticking can untick it. */
+    @Column(name = "paid_step_id")
+    private Long paidStepId;
+
+    /** What ticking this copy added when there was no step to tick. */
+    @Column(name = "paid_amount", precision = 15, scale = 2)
+    private BigDecimal paidAmount;
+
     @Column(nullable = false, length = LABEL_MAX)
     private String label;
 
@@ -85,6 +94,22 @@ public class DayTask {
     /** Neither ticked nor renamed - an edit to its routine may still rewrite it. */
     public boolean isUntouched() {
         return !done && !edited;
+    }
+
+    public Long getPaidStepId() {
+        return paidStepId;
+    }
+
+    public void setPaidStepId(Long paidStepId) {
+        this.paidStepId = paidStepId;
+    }
+
+    public BigDecimal getPaidAmount() {
+        return paidAmount;
+    }
+
+    public void setPaidAmount(BigDecimal paidAmount) {
+        this.paidAmount = paidAmount;
     }
 
     public Long getRoutineId() {

@@ -1,5 +1,6 @@
 package com.kaizen.routine.dto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -13,6 +14,9 @@ import java.util.List;
  * @param weekdays   0-6, Sunday first. Weekly and every-n-weeks.
  * @param dayOfMonth 1-31. Month-day only.
  * @param interval   every-n-days (2-365) and every-n-weeks (2-52).
+ * @param pursuitId  the goal it counts toward, or null
+ * @param amount     money goals only: what a tick adds when the goal has no
+ *                   unpaid payment step left
  */
 public record RoutineRequest(
         String label,
@@ -20,5 +24,7 @@ public record RoutineRequest(
         String cadence,
         List<Integer> weekdays,
         Integer dayOfMonth,
-        Integer interval) {
+        Integer interval,
+        String pursuitId,
+        BigDecimal amount) {
 }

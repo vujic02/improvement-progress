@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.kaizen.pursuit.Pursuit;
+import com.kaizen.routine.dto.HabitResponse;
 
 /**
  * Shaped like the client's `Pursuit`. Null fields are dropped from the body,
@@ -23,9 +24,15 @@ public record PursuitResponse(
         BigDecimal saved,
         LocalDate createdAt,
         LocalDate targetAt,
-        List<StepResponse> steps) {
+        List<StepResponse> steps,
+        List<HabitResponse> habits) {
 
-    public static PursuitResponse of(Pursuit pursuit) {
+    /**
+     * @param habits the recurring tasks linked to it, with their records -
+     *               every response carries them, so a card never loses them
+     *               on a write
+     */
+    public static PursuitResponse of(Pursuit pursuit, List<HabitResponse> habits) {
         return new PursuitResponse(
                 String.valueOf(pursuit.getId()),
                 pursuit.getName(),
@@ -36,6 +43,7 @@ public record PursuitResponse(
                 pursuit.getSaved(),
                 pursuit.getStartedOn(),
                 pursuit.getTargetOn(),
-                pursuit.getSteps().stream().map(StepResponse::of).toList());
+                pursuit.getSteps().stream().map(StepResponse::of).toList(),
+                habits);
     }
 }

@@ -28,6 +28,14 @@ public interface DayTaskRepository extends JpaRepository<DayTask, Long> {
     @Query("update DayTask t set t.routineId = null where t.routineId = :routineId")
     void detachFromRoutine(@Param("routineId") Long routineId);
 
+    /** A routine's copies over a span - what its goal's consistency record is counted from. */
+    List<DayTask> findByRoutineIdAndLoggedOnBetween(Long routineId, LocalDate from, LocalDate to);
+
+    /** A removed payment step can no longer be unticked through the copy that paid it. */
+    @Modifying
+    @Query("update DayTask t set t.paidStepId = null where t.paidStepId = :stepId")
+    void forgetPaidStep(@Param("stepId") Long stepId);
+
     /** Deleting a custom task type takes the tasks logged against it. */
     void deleteByUserIdAndCustomTypeId(Long userId, Long customTypeId);
 }

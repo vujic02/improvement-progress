@@ -1,5 +1,6 @@
 package com.kaizen.routine;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -10,6 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.kaizen.common.ApiException;
 import com.kaizen.daytask.DayTask;
 import com.kaizen.daytask.DayTaskRepository;
+import com.kaizen.pursuit.Pursuit;
+import com.kaizen.pursuit.PursuitRepository;
 import com.kaizen.routine.dto.RoutineRequest;
 import com.kaizen.routine.dto.RoutineResponse;
 import com.kaizen.tasktype.TaskTypeResolver;
@@ -36,11 +39,14 @@ public class RoutineService {
     private final RoutineRepository repo;
     private final DayTaskRepository dayTasks;
     private final TaskTypeResolver types;
+    private final PursuitRepository pursuits;
 
-    public RoutineService(RoutineRepository repo, DayTaskRepository dayTasks, TaskTypeResolver types) {
+    public RoutineService(RoutineRepository repo, DayTaskRepository dayTasks, TaskTypeResolver types,
+            PursuitRepository pursuits) {
         this.repo = repo;
         this.dayTasks = dayTasks;
         this.types = types;
+        this.pursuits = pursuits;
     }
 
     /**
@@ -209,8 +215,39 @@ public class RoutineService {
             }
         }
 
+        Long pursuitId = null;
+        BigDecimal amount = null;
+        String goal = request.pursuitId() == null ? "" : request.pursuitId().trim();
+        if (!goal.isEmpty()) {
+            Pursuit pursuit;
+            try {
+                pursuit = pursuits.findByIdAndUserId(Long.parseLong(goal), userId).orElse(null);
+            } catch (NumberFormatException ex) {
+                pursuit = null;
+            }
+            if (pursuit == null) {
+                throw ApiException.badRequest("No such goal.");
+            }
+            pursuitId = pursuit.getId();
+            amount = request.amount();
+            if (amount != null) {
+                if (!pursuit.getArea().isMoney()) {
+                    throw ApiException.badRequest("Goals on that page do not carry amounts.");
+                }
+                if (amount.signum() <= 0) {
+                    throw ApiException.badRequest("Enter an amount above zero.");
+                }
+                if (amount.compareTo(Pursuit.MAX_AMOUNT) > 0) {
+                    throw ApiException.badRequest("That amount is too large.");
+                }
+            }
+        } else if (request.amount() != null) {
+            throw ApiException.badRequest("Link a goal for the amount to go to.");
+        }
+
         routine.setLabel(label);
         routine.setType(type.customTypeId(), type.defaultKey());
         routine.setSchedule(cadence, weekdays, dayOfMonth, interval);
+        routine.setGoal(pursuitId, amount);
     }
 }

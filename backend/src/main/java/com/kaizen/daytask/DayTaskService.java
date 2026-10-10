@@ -11,6 +11,7 @@ import com.kaizen.common.ApiException;
 import com.kaizen.daytask.dto.DayTaskResponse;
 import com.kaizen.daytask.dto.NewDayTaskRequest;
 import com.kaizen.daytask.dto.UpdateDayTaskRequest;
+import com.kaizen.routine.GoalLinks;
 import com.kaizen.routine.RoutineService;
 import com.kaizen.tasktype.TaskTypeResolver;
 
@@ -33,11 +34,14 @@ public class DayTaskService {
     private final DayTaskRepository repo;
     private final TaskTypeResolver types;
     private final RoutineService routines;
+    private final GoalLinks links;
 
-    public DayTaskService(DayTaskRepository repo, TaskTypeResolver types, RoutineService routines) {
+    public DayTaskService(DayTaskRepository repo, TaskTypeResolver types, RoutineService routines,
+            GoalLinks links) {
         this.repo = repo;
         this.types = types;
         this.routines = routines;
+        this.links = links;
     }
 
     /**
@@ -76,7 +80,10 @@ public class DayTaskService {
     public DayTaskResponse update(Long userId, Long id, UpdateDayTaskRequest request) {
         DayTask task = require(userId, id);
         // No `done` means flip it: that is what a checkbox sends.
-        task.setDone(request.done() != null ? request.done() : !task.isDone());
+        boolean done = request.done() != null ? request.done() : !task.isDone();
+        // A copy of a routine linked to a money goal pays it, or refunds it.
+        links.onTick(task, done);
+        task.setDone(done);
         if (request.label() != null) {
             String label = label(request.label());
             if (!label.equals(task.getLabel())) {
