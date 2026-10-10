@@ -59,6 +59,8 @@ export interface PursuitStore {
   /** Ticking a payment puts its amount into the balance; unticking takes it out. */
   toggleStep: (pursuitId: string, stepId: string) => Promise<Result>
   removeStep: (pursuitId: string, stepId: string) => Promise<Result>
+  /** Ticks or unticks a linked task's run — the day task itself — and fetches the goals again. */
+  toggleRun: (taskId: string) => Promise<Result>
   /**
    * Moves money in or out of a pursuit's balance. Positive adds, negative
    * corrects a mistake; the balance is clamped at zero either way.

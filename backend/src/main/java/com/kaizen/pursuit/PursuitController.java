@@ -1,7 +1,9 @@
 package com.kaizen.pursuit;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -42,8 +44,9 @@ public class PursuitController {
     }
 
     @GetMapping
-    public List<PursuitResponse> list(@AuthenticationPrincipal Long userId, @RequestParam PursuitArea area) {
-        return service.list(userId, area);
+    public List<PursuitResponse> list(@AuthenticationPrincipal Long userId, @RequestParam PursuitArea area,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate today) {
+        return service.list(userId, area, today);
     }
 
     @PostMapping

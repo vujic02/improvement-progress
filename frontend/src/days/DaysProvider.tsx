@@ -44,7 +44,9 @@ export function DaysProvider({ children }: { children: ReactNode }) {
     if (userId === undefined) return
     // A response for a load that has since been replaced must not land.
     let current = true
-    get<DayTask[]>(`/api/day-tasks?from=${range.from}&to=${range.to}`)
+    // `today` is the user's, not the server's: recurring tasks are filled in
+    // up to it, and the day turns over where the user is.
+    get<DayTask[]>(`/api/day-tasks?from=${range.from}&to=${range.to}&today=${today}`)
       .then((loaded) => {
         if (current) setTasks(loaded)
       })
@@ -57,7 +59,7 @@ export function DaysProvider({ children }: { children: ReactNode }) {
     return () => {
       current = false
     }
-  }, [userId, range, attempt])
+  }, [userId, range, today, attempt])
 
   const reload = useCallback(() => {
     setError(null)
@@ -108,6 +110,7 @@ export function DaysProvider({ children }: { children: ReactNode }) {
     () => ({
       tasks,
       today: tasks.filter((task) => task.day === today),
+      todayKey: today,
       range,
       loading,
       error,

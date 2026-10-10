@@ -11,12 +11,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.kaizen.common.ApiException;
+import com.kaizen.daytask.DayTaskRepository;
 import com.kaizen.pursuit.dto.ContributeRequest;
 import com.kaizen.pursuit.dto.NewPursuitRequest;
 import com.kaizen.pursuit.dto.NewStepRequest;
 import com.kaizen.pursuit.dto.PursuitResponse;
 import com.kaizen.pursuit.dto.UpdatePursuitRequest;
 import com.kaizen.pursuit.dto.UpdateStepRequest;
+import com.kaizen.routine.GoalLinks;
+import com.kaizen.routine.RoutineService;
 
 /**
  * The rules the in-memory {@code PursuitsProvider} used to hold. They live here
@@ -32,15 +35,40 @@ public class PursuitService {
     static final int STEPS_MAX = 120;
 
     private final PursuitRepository repo;
+    private final GoalLinks links;
+    private final RoutineService routines;
+    private final DayTaskRepository dayTasks;
 
-    public PursuitService(PursuitRepository repo) {
+    public PursuitService(PursuitRepository repo, GoalLinks links, RoutineService routines,
+            DayTaskRepository dayTasks) {
         this.repo = repo;
+        this.links = links;
+        this.routines = routines;
+        this.dayTasks = dayTasks;
     }
 
-    @Transactional(readOnly = true)
-    public List<PursuitResponse> list(Long userId, PursuitArea area) {
-        return repo.findByUserIdAndAreaOrderByCreatedAtDescIdDesc(userId, area).stream()
-                .map(PursuitResponse::of)
+    /** One goal as the client sees it, habits included. Writes use the server's today. */
+    private PursuitResponse respond(Pursuit pursuit) {
+        GoalLinks.Linked linked = links
+                .linksFor(pursuit.getUserId(), List.of(pursuit), RoutineService.clientToday(null))
+                .getOrDefault(pursuit.getId(), GoalLinks.Linked.NONE);
+        return PursuitResponse.of(pursuit, linked);
+    }
+
+    /**
+     * Fills in the account's routines first, so a goal's habits count today's
+     * copy even when the days have not been read yet.
+     *
+     * @param today the client's today; null falls back to the server's
+     */
+    @Transactional
+    public List<PursuitResponse> list(Long userId, PursuitArea area, LocalDate today) {
+        LocalDate day = RoutineService.clientToday(today);
+        routines.materialize(userId, day);
+        List<Pursuit> goals = repo.findByUserIdAndAreaOrderByCreatedAtDescIdDesc(userId, area);
+        var linked = links.linksFor(userId, goals, day);
+        return goals.stream()
+                .map(goal -> PursuitResponse.of(goal, linked.getOrDefault(goal.getId(), GoalLinks.Linked.NONE)))
                 .toList();
     }
 
@@ -67,7 +95,7 @@ public class PursuitService {
             throw ApiException.badRequest("Goals on this page do not carry amounts.");
         }
 
-        return PursuitResponse.of(repo.save(pursuit));
+        return respond(repo.save(pursuit));
     }
 
     /**
@@ -107,12 +135,17 @@ public class PursuitService {
         pursuit.setTarget(target);
         pursuit.setStartedOn(request.createdAt());
         pursuit.setTargetOn(request.targetAt());
-        return PursuitResponse.of(pursuit);
+        return respond(pursuit);
     }
 
     @Transactional
     public void remove(Long userId, Long id) {
-        repo.delete(require(userId, id));
+        Pursuit pursuit = require(userId, id);
+        for (PursuitStep step : pursuit.getSteps()) {
+            dayTasks.forgetPaidStep(step.getId());
+        }
+        links.goalRemoved(id);
+        repo.delete(pursuit);
     }
 
     /**
@@ -172,7 +205,7 @@ public class PursuitService {
         }
 
         repo.flush();
-        return PursuitResponse.of(pursuit);
+        return respond(pursuit);
     }
 
     /**
@@ -193,7 +226,7 @@ public class PursuitService {
             pursuit.setSaved(next.max(BigDecimal.ZERO));
         }
         step.setDone(done);
-        return PursuitResponse.of(pursuit);
+        return respond(pursuit);
     }
 
     /**
@@ -204,6 +237,7 @@ public class PursuitService {
     @Transactional
     public void removeStep(Long userId, Long pursuitId, Long stepId) {
         Pursuit pursuit = require(userId, pursuitId);
+        dayTasks.forgetPaidStep(stepId);
         pursuit.getSteps().remove(step(pursuit, stepId));
     }
 
@@ -229,7 +263,7 @@ public class PursuitService {
 
         BigDecimal next = (pursuit.getSaved() == null ? BigDecimal.ZERO : pursuit.getSaved()).add(delta);
         pursuit.setSaved(next.max(BigDecimal.ZERO));
-        return PursuitResponse.of(pursuit);
+        return respond(pursuit);
     }
 
     private Pursuit require(Long userId, Long id) {

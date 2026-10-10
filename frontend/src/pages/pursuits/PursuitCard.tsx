@@ -13,11 +13,13 @@ import {
   STEP_NAME_MAX,
   kindMeta,
   parseAmount,
+  type Habit,
   type Pursuit,
   type PursuitArea,
   type PursuitStep,
 } from '../../data/pursuits'
-import { daysBetween, mediumDate, parseDateInput } from '../../lib/date'
+import { scheduleText } from '../../data/routines'
+import { dayLabel, daysBetween, mediumDate, parseDateInput } from '../../lib/date'
 import type { NewStep, Result } from '../../pursuits/context'
 import { useMoney } from '../../pursuits/useMoney'
 import styles from './PursuitCard.module.css'
@@ -34,6 +36,8 @@ export interface PursuitCardProps {
   onAddStep: (step: NewStep) => Promise<Result>
   onToggleStep: (stepId: string) => Promise<Result>
   onRemoveStep: (stepId: string) => Promise<Result>
+  /** Ticks a linked recurring task's run, by its day task id. */
+  onToggleRun: (taskId: string) => Promise<Result>
 }
 
 /** How much time is left, in the words the card actually shows. */
@@ -49,6 +53,16 @@ function countdown(targetAt: string): { text: string; late: boolean } {
 /** What a step reads as: its words, or the payment it stands for. */
 const stepText = (step: PursuitStep, format: (value: number) => string) =>
   step.amount !== undefined ? format(step.amount) : (step.label ?? '')
+
+/** A habit's schedule and record: "Every day · 24 of 30 in the last 30 days · 5 in a row". */
+function habitLine(habit: Habit): string {
+  const parts = [scheduleText(habit.routine)]
+  if (habit.due > 0) parts.push(`${habit.done} of ${habit.due} in the last 30 days`)
+  if (habit.streak > 1) parts.push(`${habit.streak} in a row`)
+  const missed = habit.lastMissed ? parseDateInput(habit.lastMissed) : null
+  if (missed) parts.push(`last missed ${mediumDate(missed)}`)
+  return parts.join(' · ')
+}
 
 /**
  * How the planned payments sit against the target — a hint, never a block.
@@ -76,6 +90,7 @@ export function PursuitCard({
   onAddStep,
   onToggleStep,
   onRemoveStep,
+  onToggleRun,
 }: PursuitCardProps) {
   const { format, symbol } = useMoney()
   const [draft, setDraft] = useState('')
@@ -255,37 +270,75 @@ export function PursuitCard({
         </span>
       </div>
 
+      {pursuit.habits.length ? (
+        <div className={styles.habits}>
+          <Eyebrow>Habits</Eyebrow>
+          {pursuit.habits.map((habit) => (
+            <div key={habit.routine.id} className={styles.habit}>
+              <Icon name="repeat" size={14} />
+              <div className={styles.habitText}>
+                <span className={styles.habitLabel}>{habit.routine.label}</span>
+                <span className={styles.habitMeta}>{habitLine(habit)}</span>
+              </div>
+              {habit.dueToday ? <span className={styles.habitDue}>Due today</span> : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       <div className={styles.steps}>
-        {pursuit.steps.length ? (
-          pursuit.steps.map((step) => (
-            <div key={step.id} className={styles.step}>
+        {pursuit.steps.length || pursuit.runs.length ? null : (
+          <span className={styles.noSteps}>{area.noSteps}</span>
+        )}
+        {pursuit.steps.map((step) => (
+          <div key={step.id} className={styles.step}>
+            <CheckSquare
+              checked={step.done}
+              color={meta.color}
+              size={18}
+              onToggle={() => void run(() => onToggleStep(step.id))}
+              label={stepText(step, format)}
+            />
+            <span
+              className={[styles.stepLabel, step.done ? styles.stepDone : '']
+                .filter(Boolean)
+                .join(' ')}
+            >
+              {stepText(step, format)}
+            </span>
+            <IconButton
+              icon="close"
+              label={`Remove ${stepText(step, format)}`}
+              size={14}
+              className={styles.stepRemove}
+              disabled={busy}
+              onClick={() => void run(() => onRemoveStep(step.id))}
+            />
+          </div>
+        ))}
+        {pursuit.runs.map((item) => {
+          const text = item.amount !== undefined ? `${item.label} · ${format(item.amount)}` : item.label
+          return (
+            <div key={item.id} className={styles.step}>
               <CheckSquare
-                checked={step.done}
+                checked={item.done}
                 color={meta.color}
                 size={18}
-                onToggle={() => void run(() => onToggleStep(step.id))}
-                label={stepText(step, format)}
+                onToggle={() => void run(() => onToggleRun(item.id))}
+                label={`${text}, ${dayLabel(item.day)}`}
               />
               <span
-                className={[styles.stepLabel, step.done ? styles.stepDone : '']
+                className={[styles.stepLabel, item.done ? styles.stepDone : '']
                   .filter(Boolean)
                   .join(' ')}
               >
-                {stepText(step, format)}
+                {text}
               </span>
-              <IconButton
-                icon="close"
-                label={`Remove ${stepText(step, format)}`}
-                size={14}
-                className={styles.stepRemove}
-                disabled={busy}
-                onClick={() => void run(() => onRemoveStep(step.id))}
-              />
+              <span className={styles.runDay}>{dayLabel(item.day)}</span>
+              <Icon name="repeat" size={12} className={styles.runIcon} />
             </div>
-          ))
-        ) : (
-          <span className={styles.noSteps}>{area.noSteps}</span>
-        )}
+          )
+        })}
       </div>
 
       <form className={styles.add} onSubmit={submit}>

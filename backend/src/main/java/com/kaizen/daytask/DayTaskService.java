@@ -11,8 +11,9 @@ import com.kaizen.common.ApiException;
 import com.kaizen.daytask.dto.DayTaskResponse;
 import com.kaizen.daytask.dto.NewDayTaskRequest;
 import com.kaizen.daytask.dto.UpdateDayTaskRequest;
-import com.kaizen.tasktype.CustomTaskTypeRepository;
-import com.kaizen.tasktype.TaskTypeDefaults;
+import com.kaizen.routine.GoalLinks;
+import com.kaizen.routine.RoutineService;
+import com.kaizen.tasktype.TaskTypeResolver;
 
 /**
  * The day tracker's rules. A task belongs to one account, sits on one day, and
@@ -31,21 +32,35 @@ public class DayTaskService {
     static final int MAX_RANGE_DAYS = 366;
 
     private final DayTaskRepository repo;
-    private final CustomTaskTypeRepository types;
+    private final TaskTypeResolver types;
+    private final RoutineService routines;
+    private final GoalLinks links;
 
-    public DayTaskService(DayTaskRepository repo, CustomTaskTypeRepository types) {
+    public DayTaskService(DayTaskRepository repo, TaskTypeResolver types, RoutineService routines,
+            GoalLinks links) {
         this.repo = repo;
         this.types = types;
+        this.routines = routines;
+        this.links = links;
     }
 
-    @Transactional(readOnly = true)
-    public List<DayTaskResponse> list(Long userId, LocalDate from, LocalDate to) {
+    /**
+     * Fills in the account's routines up to {@code today} first, so a read is
+     * always of the days as they should stand - including a day the app was
+     * never opened on, which gets its copies unticked.
+     *
+     * @param today the client's today, since the day turns over where the user
+     *              is; null falls back to the server's
+     */
+    @Transactional
+    public List<DayTaskResponse> list(Long userId, LocalDate from, LocalDate to, LocalDate today) {
         if (to.isBefore(from)) {
             throw ApiException.badRequest("The range ends before it starts.");
         }
         if (ChronoUnit.DAYS.between(from, to) > MAX_RANGE_DAYS) {
             throw ApiException.badRequest("Ask for a year at a time at most.");
         }
+        routines.materialize(userId, RoutineService.clientToday(today));
         return repo.findByUserIdAndLoggedOnBetweenOrderByLoggedOnAscIdAsc(userId, from, to).stream()
                 .map(DayTaskResponse::of)
                 .toList();
@@ -65,9 +80,17 @@ public class DayTaskService {
     public DayTaskResponse update(Long userId, Long id, UpdateDayTaskRequest request) {
         DayTask task = require(userId, id);
         // No `done` means flip it: that is what a checkbox sends.
-        task.setDone(request.done() != null ? request.done() : !task.isDone());
+        boolean done = request.done() != null ? request.done() : !task.isDone();
+        // A copy of a routine linked to a money goal pays it, or refunds it.
+        links.onTick(task, done);
+        task.setDone(done);
         if (request.label() != null) {
-            task.setLabel(label(request.label()));
+            String label = label(request.label());
+            if (!label.equals(task.getLabel())) {
+                // Renamed by hand: the routine no longer speaks for this copy.
+                task.setLabel(label);
+                task.setEdited(true);
+            }
         }
         return DayTaskResponse.of(repo.save(task));
     }
@@ -100,27 +123,12 @@ public class DayTaskService {
         return day;
     }
 
-    /**
-     * One string arrives from the client and lands in one of two columns: the
-     * built-in key as it is, or the id of a custom type this account owns.
-     * Anything else - another account's type, a deleted one, a typo - is a bad
-     * request rather than a row pointing nowhere.
-     */
     private void applyType(DayTask task, Long userId, String typeId) {
-        String value = typeId.trim();
-        if (TaskTypeDefaults.isDefaultKey(value)) {
-            task.setDefaultKey(value);
-            return;
+        TaskTypeResolver.Ref ref = types.resolve(userId, typeId);
+        if (ref.customTypeId() != null) {
+            task.setCustomTypeId(ref.customTypeId());
+        } else {
+            task.setDefaultKey(ref.defaultKey());
         }
-
-        long customId;
-        try {
-            customId = Long.parseLong(value);
-        } catch (NumberFormatException e) {
-            throw ApiException.badRequest("No such task type.");
-        }
-        types.findByIdAndUserId(customId, userId)
-                .orElseThrow(() -> ApiException.badRequest("No such task type."));
-        task.setCustomTypeId(customId);
     }
 }

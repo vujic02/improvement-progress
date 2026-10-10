@@ -9,7 +9,7 @@ import {
 } from '../../components'
 import { DREAM_COLOR } from '../../data/dreams'
 import { STEP_NAME_MAX, type Pursuit } from '../../data/pursuits'
-import { daysBetween, mediumDate, parseDateInput } from '../../lib/date'
+import { dayLabel, daysBetween, mediumDate, parseDateInput } from '../../lib/date'
 import type { Result } from '../../pursuits/context'
 import styles from './DreamCard.module.css'
 
@@ -21,6 +21,8 @@ export interface DreamCardProps {
   onAddStep: (label: string) => Promise<Result>
   onToggleStep: (stepId: string) => Promise<Result>
   onRemoveStep: (stepId: string) => Promise<Result>
+  /** Ticks a linked recurring task's run, by its day task id. */
+  onToggleRun: (taskId: string) => Promise<Result>
 }
 
 /** How much time is left, in the words the card actually shows. */
@@ -45,6 +47,7 @@ export function DreamCard({
   onAddStep,
   onToggleStep,
   onRemoveStep,
+  onToggleRun,
 }: DreamCardProps) {
   const [draft, setDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -157,38 +160,57 @@ export function DreamCard({
         </div>
 
         <div className={styles.steps}>
-          {dream.steps.length ? (
-            dream.steps.map((step) => (
-              <div key={step.id} className={styles.step}>
-                <CheckSquare
-                  checked={step.done}
-                  color={DREAM_COLOR}
-                  size={18}
-                  onToggle={() => void run(() => onToggleStep(step.id))}
-                  label={step.label ?? ''}
-                />
-                <span
-                  className={[styles.stepLabel, step.done ? styles.stepDone : '']
-                    .filter(Boolean)
-                    .join(' ')}
-                >
-                  {step.label}
-                </span>
-                <IconButton
-                  icon="close"
-                  label={`Remove ${step.label}`}
-                  size={14}
-                  className={styles.stepRemove}
-                  disabled={busy}
-                  onClick={() => void run(() => onRemoveStep(step.id))}
-                />
-              </div>
-            ))
-          ) : (
+          {dream.steps.length || dream.runs.length ? null : (
             <span className={styles.noSteps}>
               No steps yet. Even a dream house starts with a number and a date.
             </span>
           )}
+          {dream.steps.map((step) => (
+            <div key={step.id} className={styles.step}>
+              <CheckSquare
+                checked={step.done}
+                color={DREAM_COLOR}
+                size={18}
+                onToggle={() => void run(() => onToggleStep(step.id))}
+                label={step.label ?? ''}
+              />
+              <span
+                className={[styles.stepLabel, step.done ? styles.stepDone : '']
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                {step.label}
+              </span>
+              <IconButton
+                icon="close"
+                label={`Remove ${step.label}`}
+                size={14}
+                className={styles.stepRemove}
+                disabled={busy}
+                onClick={() => void run(() => onRemoveStep(step.id))}
+              />
+            </div>
+          ))}
+          {dream.runs.map((item) => (
+            <div key={item.id} className={styles.step}>
+              <CheckSquare
+                checked={item.done}
+                color={DREAM_COLOR}
+                size={18}
+                onToggle={() => void run(() => onToggleRun(item.id))}
+                label={`${item.label}, ${dayLabel(item.day)}`}
+              />
+              <span
+                className={[styles.stepLabel, item.done ? styles.stepDone : '']
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                {item.label}
+              </span>
+              <span className={styles.runDay}>{dayLabel(item.day)}</span>
+              <Icon name="repeat" size={12} className={styles.runIcon} />
+            </div>
+          ))}
         </div>
 
         <form className={styles.add} onSubmit={submit}>

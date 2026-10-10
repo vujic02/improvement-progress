@@ -1,4 +1,5 @@
 import type { IconName } from '../components/Icon'
+import type { Routine } from './routines'
 
 /**
  * A pursuit is anything you are working towards over time: a saving, an
@@ -16,6 +17,42 @@ export interface PursuitStep {
   label?: string
   amount?: number
   done: boolean
+}
+
+/**
+ * A recurring task linked to a goal, with how it has gone. Mirrors the API's
+ * `HabitResponse`.
+ */
+export interface Habit {
+  routine: Routine
+  /** Runs ticked in the last 30 days. */
+  done: number
+  /** Runs in the last 30 days, ticked or not. */
+  due: number
+  /** Consecutive runs ticked, counting back. An unticked today does not break it. */
+  streak: number
+  /** Today's copy exists and is not ticked yet. */
+  dueToday: boolean
+  /** yyyy-mm-dd. The most recent past day left unticked, if any. */
+  lastMissed?: string
+}
+
+/**
+ * One day's copy of a linked recurring task, listed among the goal's steps.
+ * It is a day task: ticking it here ticks it in that day's list too. Runs are
+ * shown, not counted — a daily task never finishes, so the progress bar stays
+ * with the steps that were written down.
+ */
+export interface Run {
+  /** The day task's id. */
+  id: string
+  routineId: string
+  label: string
+  /** yyyy-mm-dd. */
+  day: string
+  done: boolean
+  /** Money goals only: what ticking it adds, or added. */
+  amount?: number
 }
 
 export interface Pursuit {
@@ -39,6 +76,14 @@ export interface Pursuit {
   /** yyyy-mm-dd. When they want it finished. */
   targetAt: string
   steps: PursuitStep[]
+  /** The recurring tasks linked to it. Every response carries them. */
+  habits: Habit[]
+  /**
+   * Its linked tasks' runs: every unticked one and the last few ticked,
+   * newest first. A money goal lists only runs that pay an amount of their
+   * own — one that ticks a planned payment shows as that payment.
+   */
+  runs: Run[]
 }
 
 /** Names are capped at this length in the create modal. */

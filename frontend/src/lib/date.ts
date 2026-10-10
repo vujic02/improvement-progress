@@ -79,6 +79,16 @@ export function daysBetween(from: Date, to: Date): number {
 }
 
 /** "12 Apr 2027" — the long-form date used on goal cards. */
+/** A yyyy-mm-dd day as a list shows it: "Today", "Yesterday", or the date. */
+export function dayLabel(day: string, now: Date = new Date()): string {
+  const date = parseDateInput(day)
+  if (!date) return day
+  const back = daysBetween(date, now)
+  if (back === 0) return 'Today'
+  if (back === 1) return 'Yesterday'
+  return mediumDate(date)
+}
+
 export function mediumDate(d: Date): string {
   return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`
 }
