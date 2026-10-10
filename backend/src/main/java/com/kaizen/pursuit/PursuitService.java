@@ -19,7 +19,6 @@ import com.kaizen.pursuit.dto.PursuitResponse;
 import com.kaizen.pursuit.dto.UpdatePursuitRequest;
 import com.kaizen.pursuit.dto.UpdateStepRequest;
 import com.kaizen.routine.GoalLinks;
-import com.kaizen.routine.dto.HabitResponse;
 import com.kaizen.routine.RoutineService;
 
 /**
@@ -50,10 +49,10 @@ public class PursuitService {
 
     /** One goal as the client sees it, habits included. Writes use the server's today. */
     private PursuitResponse respond(Pursuit pursuit) {
-        List<HabitResponse> habits = links
-                .habitsFor(pursuit.getUserId(), List.of(pursuit), RoutineService.clientToday(null))
-                .getOrDefault(pursuit.getId(), List.of());
-        return PursuitResponse.of(pursuit, habits);
+        GoalLinks.Linked linked = links
+                .linksFor(pursuit.getUserId(), List.of(pursuit), RoutineService.clientToday(null))
+                .getOrDefault(pursuit.getId(), GoalLinks.Linked.NONE);
+        return PursuitResponse.of(pursuit, linked);
     }
 
     /**
@@ -67,9 +66,9 @@ public class PursuitService {
         LocalDate day = RoutineService.clientToday(today);
         routines.materialize(userId, day);
         List<Pursuit> goals = repo.findByUserIdAndAreaOrderByCreatedAtDescIdDesc(userId, area);
-        var habits = links.habitsFor(userId, goals, day);
+        var linked = links.linksFor(userId, goals, day);
         return goals.stream()
-                .map(goal -> PursuitResponse.of(goal, habits.getOrDefault(goal.getId(), List.of())))
+                .map(goal -> PursuitResponse.of(goal, linked.getOrDefault(goal.getId(), GoalLinks.Linked.NONE)))
                 .toList();
     }
 

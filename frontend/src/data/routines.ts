@@ -44,6 +44,10 @@ export interface Routine {
   interval?: number
   /** yyyy-mm-dd. Every-n schedules count from here. */
   startsOn: string
+  /** The goal it counts toward, if any. Deleting the goal clears it. */
+  pursuitId?: string
+  /** Money goals only: what a tick adds when the goal has no unpaid payment step left. */
+  amount?: number
 }
 
 export type RoutineForm = Omit<Routine, 'id' | 'startsOn'>

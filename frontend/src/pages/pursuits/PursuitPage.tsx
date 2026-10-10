@@ -47,6 +47,7 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
     addStep,
     toggleStep,
     removeStep,
+    toggleRun,
     contribute,
   } = usePursuitStore(context, hookName)
 
@@ -254,6 +255,7 @@ export function PursuitPage({ area, context, hookName }: PursuitPageProps) {
                     onAddStep={(step) => addStep(pursuit.id, step)}
                     onToggleStep={(stepId) => toggleStep(pursuit.id, stepId)}
                     onRemoveStep={(stepId) => removeStep(pursuit.id, stepId)}
+                    onToggleRun={toggleRun}
                   />
                 ))}
               </div>

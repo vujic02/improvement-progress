@@ -177,6 +177,51 @@
   color: var(--accent-rose);
 }
 
+/* ---- habits: the recurring tasks linked to it ---- */
+.habits {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.habit {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--text-muted);
+}
+
+.habitText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.habitLabel {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.habitMeta {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  text-wrap: pretty;
+}
+
+.habitDue {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--text);
+}
+
 /* ---- steps ---- */
 .steps {
   display: flex;
@@ -213,6 +258,20 @@
 .step:hover .stepRemove,
 .stepRemove:focus-visible {
   opacity: 1;
+}
+
+/* A linked recurring task's run, listed with the steps. */
+.runIcon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.runDay {
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .noSteps {

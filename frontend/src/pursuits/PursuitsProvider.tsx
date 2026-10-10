@@ -7,8 +7,10 @@ import {
   safeImageUrl,
   type Pursuit,
 } from '../data/pursuits'
+import { useDays } from '../days/context'
 import { del, failure, get, patch, post } from '../lib/api'
 import { parseDateInput } from '../lib/date'
+import { useRoutines } from '../routines/context'
 import { useSession } from '../session/context'
 import { useMoney } from './useMoney'
 import type {
@@ -66,6 +68,16 @@ function checkForm(
   return { ok: true, name, image: picture ?? undefined }
 }
 
+/**
+ * An API a release behind this client sends no `habits` or `runs`. The cards
+ * read both as lists, so they are filled in here rather than guarded there.
+ */
+const withLinks = (pursuit: Pursuit): Pursuit => ({
+  ...pursuit,
+  habits: pursuit.habits ?? [],
+  runs: pursuit.runs ?? [],
+})
+
 export interface PursuitsProviderProps {
   /** Which list this provider holds — the server keeps the three apart by it. */
   area: PursuitAreaId
@@ -85,25 +97,45 @@ export interface PursuitsProviderProps {
  *
  * <p>The cheap checks run here first so a typo gets an instant answer; the
  * server repeats every one of them and has the final word.
+ *
+ * <p>A recurring task linked to a goal changes it from outside: ticking its
+ * copy in the day list pays a money goal and moves every goal's habit record.
+ * So the list is fetched again, quietly, whenever a linked routine or one of
+ * its copies changes.
  */
 export function PursuitsProvider({ area, context, children }: PursuitsProviderProps) {
   const { user } = useSession()
   const userId = user?.id
   const { format } = useMoney()
+  const { tasks, todayKey, toggle: toggleTask } = useDays()
+  const { routines, reload: reloadRoutines } = useRoutines()
+
+  // Changes exactly when the server's answer could: a link made, edited or
+  // dropped, or a linked copy ticked, unticked or removed.
+  const linkKey = useMemo(() => {
+    const linked = routines.filter((r) => r.pursuitId)
+    if (!linked.length) return ''
+    const ids = new Set(linked.map((r) => r.id))
+    const copies = tasks.filter((t) => t.routineId && ids.has(t.routineId))
+    return JSON.stringify([linked, copies.map((t) => [t.id, t.done])])
+  }, [routines, tasks])
 
   const [pursuits, setPursuits] = useState<Pursuit[]>([])
   // Signed out there is nothing to load, so loading starts false and stays there.
   const [loading, setLoading] = useState(userId !== undefined)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
+  // Bumped to fetch again without the loading line.
+  const [refresh, setRefresh] = useState(0)
 
   useEffect(() => {
     if (userId === undefined) return
     // A response for a load that has since been replaced must not land.
     let current = true
-    get<Pursuit[]>(`/api/pursuits?area=${area}`)
+    // `today` is the user's: a habit's record and streak count back from it.
+    get<Pursuit[]>(`/api/pursuits?area=${area}&today=${todayKey}`)
       .then((loaded) => {
-        if (current) setPursuits(loaded)
+        if (current) setPursuits(loaded.map(withLinks))
       })
       .catch((e: unknown) => {
         if (current) setError(e instanceof Error ? e.message : 'Could not load your goals.')
@@ -114,7 +146,7 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
     return () => {
       current = false
     }
-  }, [userId, area, attempt])
+  }, [userId, area, todayKey, attempt, refresh, linkKey])
 
   const reload = useCallback(() => {
     setError(null)
@@ -124,7 +156,7 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
 
   /** Swaps in the server's copy of one pursuit. */
   const replace = useCallback((updated: Pursuit) => {
-    setPursuits((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+    setPursuits((prev) => prev.map((p) => (p.id === updated.id ? withLinks(updated) : p)))
   }, [])
 
   const add = useCallback(
@@ -143,7 +175,7 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
           createdAt: fields.createdAt,
           targetAt: fields.targetAt,
         })
-        setPursuits((prev) => [created, ...prev])
+        setPursuits((prev) => [withLinks(created), ...prev])
         return { ok: true }
       } catch (e) {
         return failure(e)
@@ -179,15 +211,21 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
     [pursuits, replace, format],
   )
 
-  const remove = useCallback(async (id: string): Promise<Result> => {
-    try {
-      await del(`/api/pursuits/${id}`)
-      setPursuits((prev) => prev.filter((p) => p.id !== id))
-      return { ok: true }
-    } catch (e) {
-      return failure(e)
-    }
-  }, [])
+  const remove = useCallback(
+    async (id: string): Promise<Result> => {
+      try {
+        const linked = routines.some((r) => r.pursuitId === id)
+        await del(`/api/pursuits/${id}`)
+        setPursuits((prev) => prev.filter((p) => p.id !== id))
+        // The server has just unlinked its recurring tasks.
+        if (linked) reloadRoutines()
+        return { ok: true }
+      } catch (e) {
+        return failure(e)
+      }
+    },
+    [routines, reloadRoutines],
+  )
 
   const addStep = useCallback(
     async (pursuitId: string, step: NewStep): Promise<Result> => {
@@ -258,6 +296,17 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
     }
   }, [])
 
+  const toggleRun = useCallback(
+    async (taskId: string): Promise<Result> => {
+      const result = await toggleTask(taskId)
+      // A run older than the days on screen is not in the day store, so the
+      // tick would not show up in `linkKey`. Ask for the goals outright.
+      if (result.ok) setRefresh((n) => n + 1)
+      return result
+    },
+    [toggleTask],
+  )
+
   const contribute = useCallback(
     async (pursuitId: string, amount: number): Promise<Result> => {
       if (!Number.isFinite(amount) || amount === 0) {
@@ -291,6 +340,7 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
       addStep,
       toggleStep,
       removeStep,
+      toggleRun,
       contribute,
     }),
     [
@@ -304,6 +354,7 @@ export function PursuitsProvider({ area, context, children }: PursuitsProviderPr
       addStep,
       toggleStep,
       removeStep,
+      toggleRun,
       contribute,
     ],
   )

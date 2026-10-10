@@ -97,6 +97,14 @@
   color: #fff;
 }
 
+/* What linking to a goal does, under the goal picker. */
+.hint {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  text-wrap: pretty;
+}
+
 .summary {
   font-size: 12px;
   line-height: 1.4;

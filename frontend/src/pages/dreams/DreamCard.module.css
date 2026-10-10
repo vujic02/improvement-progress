@@ -188,6 +188,20 @@
   opacity: 1;
 }
 
+/* A linked recurring task's run, listed with the steps. */
+.runIcon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.runDay {
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .noSteps {
   font-size: 12px;
   line-height: 1.5;

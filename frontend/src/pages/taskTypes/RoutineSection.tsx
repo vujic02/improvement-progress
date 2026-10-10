@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import { Button, GlassCard, Icon, IconButton, IconTile, SectionHeading } from '../../components'
 import { ROUTINES_MAX, scheduleText } from '../../data/routines'
+import { useDreams } from '../../dreams/context'
+import { useGrowth } from '../../growth/context'
 import { useRoutines } from '../../routines/context'
+import { useSavings } from '../../savings/context'
 import { useTaskTypes } from '../../taskTypes/context'
-import { RoutineModal } from './RoutineModal'
+import { RoutineModal, type GoalGroup } from './RoutineModal'
 import styles from './RoutineSection.module.css'
 
 /**
@@ -13,6 +16,14 @@ import styles from './RoutineSection.module.css'
 export function RoutineSection() {
   const { all: types } = useTaskTypes()
   const { routines, loading, error, reload, add, update, remove } = useRoutines()
+  const { pursuits: savings } = useSavings()
+  const { pursuits: growth } = useGrowth()
+  const { pursuits: dreams } = useDreams()
+  const goalGroups: GoalGroup[] = [
+    { label: 'Savings & investing', money: true, goals: savings },
+    { label: 'Self-improvement', money: false, goals: growth },
+    { label: 'Dreams', money: false, goals: dreams },
+  ]
 
   const [creating, setCreating] = useState(false)
   // Held by id, so the modal reads the routine as it is now.
@@ -25,6 +36,8 @@ export function RoutineSection() {
   const full = routines.length >= ROUTINES_MAX
   const ready = !loading && !error
   const typeOf = (id: string) => types.find((type) => type.id === id)
+  const goalOf = (id?: string) =>
+    id ? [...savings, ...growth, ...dreams].find((goal) => goal.id === id) : undefined
 
   const closeModal = () => {
     setCreating(false)
@@ -79,6 +92,7 @@ export function RoutineSection() {
           <ul className={styles.list}>
             {routines.map((routine) => {
               const type = typeOf(routine.typeId)
+              const goal = goalOf(routine.pursuitId)
               return (
                 <li key={routine.id} className={styles.row}>
                   <IconTile
@@ -94,6 +108,7 @@ export function RoutineSection() {
                       <Icon name="repeat" size={12} />
                       {scheduleText(routine)}
                       {type ? ` · ${type.label}` : null}
+                      {goal ? ` · counts toward ${goal.name}` : null}
                     </span>
                   </div>
                   <div className={styles.rowActions}>
@@ -134,6 +149,7 @@ export function RoutineSection() {
         open={creating || editing !== undefined}
         editing={editing}
         types={types}
+        goalGroups={goalGroups}
         onClose={closeModal}
         onSubmit={editing ? (form) => update(editing.id, form) : add}
       />

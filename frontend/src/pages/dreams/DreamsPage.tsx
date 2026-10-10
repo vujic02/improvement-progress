@@ -33,6 +33,7 @@ export function DreamsPage() {
     addStep,
     toggleStep,
     removeStep,
+    toggleRun,
   } = useDreams()
   const [creating, setCreating] = useState(false)
   // Held by id, so the modal reads the dream as it is now rather than a copy
@@ -178,6 +179,7 @@ export function DreamsPage() {
                   onAddStep={(label) => addStep(dream.id, { label })}
                   onToggleStep={(stepId) => toggleStep(dream.id, stepId)}
                   onRemoveStep={(stepId) => removeStep(dream.id, stepId)}
+                  onToggleRun={toggleRun}
                 />
               ))}
             </div>

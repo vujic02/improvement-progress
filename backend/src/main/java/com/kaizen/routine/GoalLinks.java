@@ -8,6 +8,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,11 +21,12 @@ import com.kaizen.pursuit.PursuitRepository;
 import com.kaizen.pursuit.PursuitStep;
 import com.kaizen.routine.dto.HabitResponse;
 import com.kaizen.routine.dto.RoutineResponse;
+import com.kaizen.routine.dto.RunResponse;
 
 /**
  * Where recurring tasks meet goals. A routine linked to a money goal pays it
  * when its day's copy is ticked; one linked to any goal shows up on that goal
- * as a habit with a consistency record.
+ * as a habit with a consistency record, and its copies as steps to tick.
  *
  * <p>Depends on repositories only, so the day, pursuit and routine services
  * can all lean on it without leaning on each other.
@@ -33,6 +36,15 @@ public class GoalLinks {
 
     /** The record a goal card shows: "24 of 30 days". */
     static final int RECORD_DAYS = 30;
+
+    /** Ticked runs a goal still lists, per routine. Unticked ones are all listed. */
+    static final int RECENT_RUNS = 3;
+
+    /** What a goal's linked routines add to its response. */
+    public record Linked(List<HabitResponse> habits, List<RunResponse> runs) {
+
+        public static final Linked NONE = new Linked(List.of(), List.of());
+    }
 
     private final RoutineRepository routines;
     private final DayTaskRepository dayTasks;
@@ -51,7 +63,7 @@ public class GoalLinks {
      * remembers which, so unticking undoes exactly that and nothing else.
      *
      * <p>Growth goals and dreams have nothing to pay; their link is read, not
-     * written, by {@link #habitsFor}.
+     * written, by {@link #linksFor}.
      */
     @Transactional
     public void onTick(DayTask copy, boolean done) {
@@ -124,17 +136,24 @@ public class GoalLinks {
     }
 
     /**
-     * Every linked routine's record, keyed by goal id. The record counts the
-     * last {@value #RECORD_DAYS} days the routine ran on; the streak counts
-     * back over consecutive runs ticked, and an unticked today does not break
-     * it - the day is not over.
+     * Every linked routine's record and runs, keyed by goal id. The record
+     * counts the last {@value #RECORD_DAYS} days the routine ran on; the
+     * streak counts back over consecutive runs ticked, and an unticked today
+     * does not break it - the day is not over.
+     *
+     * <p>The runs are the copies a goal lists among its steps: every unticked
+     * one, and the last {@value #RECENT_RUNS} ticked, so a daily task stays a
+     * short list. A money goal lists only the runs that are a payment of
+     * their own - a run that ticks a planned payment step is already on the
+     * card as that step.
      */
     @Transactional(readOnly = true)
-    public Map<Long, List<HabitResponse>> habitsFor(Long userId, List<Pursuit> goals, LocalDate today) {
-        Map<Long, List<HabitResponse>> byGoal = new HashMap<>();
+    public Map<Long, Linked> linksFor(Long userId, List<Pursuit> goals, LocalDate today) {
+        Map<Long, Linked> byGoal = new HashMap<>();
         if (goals.isEmpty()) {
             return byGoal;
         }
+        Map<Long, Pursuit> goalsById = goals.stream().collect(Collectors.toMap(Pursuit::getId, Function.identity()));
         List<Long> ids = goals.stream().map(Pursuit::getId).toList();
         LocalDate earliest = today.minusDays(RoutineService.BACKFILL_DAYS - 1L);
 
@@ -174,8 +193,37 @@ public class GoalLinks {
             boolean dueToday = copies.stream()
                     .anyMatch(copy -> copy.getLoggedOn().equals(today) && !copy.isDone());
 
-            byGoal.computeIfAbsent(routine.getPursuitId(), id -> new ArrayList<>())
+            Pursuit goal = goalsById.get(routine.getPursuitId());
+            boolean money = goal.getArea().isMoney();
+            boolean stepLeft = goal.getSteps().stream()
+                    .anyMatch(step -> step.getAmount() != null && !step.isDone());
+
+            Linked linked = byGoal.computeIfAbsent(goal.getId(),
+                    id -> new Linked(new ArrayList<>(), new ArrayList<>()));
+            linked.habits()
                     .add(new HabitResponse(RoutineResponse.of(routine), done, due, streak, dueToday, lastMissed));
+
+            int ticked = 0;
+            for (DayTask copy : copies) {
+                BigDecimal amount = null;
+                if (money) {
+                    // Ticked: what it added itself. Unticked: what it would,
+                    // which is nothing while a payment step is waiting.
+                    amount = copy.isDone() ? copy.getPaidAmount() : stepLeft ? null : routine.getAmount();
+                    if (amount == null) {
+                        continue;
+                    }
+                }
+                if (copy.isDone() && ++ticked > RECENT_RUNS) {
+                    continue;
+                }
+                linked.runs().add(new RunResponse(String.valueOf(copy.getId()), String.valueOf(routine.getId()),
+                        copy.getLabel(), copy.getLoggedOn(), copy.isDone(), amount));
+            }
+        }
+        // Newest first, whichever routine a run came from.
+        for (Linked linked : byGoal.values()) {
+            linked.runs().sort(Comparator.comparing(RunResponse::day).reversed());
         }
         return byGoal;
     }

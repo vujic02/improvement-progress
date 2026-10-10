@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Button, Input, Modal } from '../../components'
+import { parseAmount, type Pursuit } from '../../data/pursuits'
 import {
   CADENCES,
   CADENCE_LABELS,
@@ -15,14 +16,25 @@ import {
 import type { TaskType } from '../../data/taskTypes'
 import { TASK_LABEL_MAX } from '../../days/context'
 import { DAY_NAMES } from '../../lib/date'
+import { useMoney } from '../../pursuits/useMoney'
 import type { Result } from '../../session/context'
 import styles from './RoutineModal.module.css'
+
+/** One page's goals, as the goal picker groups them. */
+export interface GoalGroup {
+  label: string
+  /** A money page: a tick pays the goal, so the form asks for an amount. */
+  money: boolean
+  goals: Pursuit[]
+}
 
 export interface RoutineModalProps {
   open: boolean
   /** The routine being edited. Absent, the modal creates a new one. */
   editing?: Routine
   types: TaskType[]
+  /** Every goal the routine could count toward, a group per page. */
+  goalGroups: GoalGroup[]
   onClose: () => void
   onSubmit: (form: RoutineForm) => Promise<Result>
 }
@@ -37,7 +49,14 @@ const wholeNumber = (raw: string) => {
  * The fields. Mounted only while the dialog is open, so every open starts from
  * the routine being edited, or blank — no reset effect needed.
  */
-function RoutineFields({ editing, types, onClose, onSubmit }: Omit<RoutineModalProps, 'open'>) {
+function RoutineFields({
+  editing,
+  types,
+  goalGroups,
+  onClose,
+  onSubmit,
+}: Omit<RoutineModalProps, 'open'>) {
+  const { symbol } = useMoney()
   const [label, setLabel] = useState(editing?.label ?? '')
   const [typeId, setTypeId] = useState(editing?.typeId ?? types[0]?.id ?? '')
   const [cadence, setCadence] = useState<Cadence>(editing?.cadence ?? 'daily')
@@ -46,9 +65,18 @@ function RoutineFields({ editing, types, onClose, onSubmit }: Omit<RoutineModalP
   const [weekdays, setWeekdays] = useState<number[]>(editing?.weekdays ?? [])
   const [dayOfMonth, setDayOfMonth] = useState(String(editing?.dayOfMonth ?? 1))
   const [interval, setInterval] = useState(String(editing?.interval ?? 2))
+  const [pursuitId, setPursuitId] = useState(editing?.pursuitId ?? '')
+  const [amount, setAmount] = useState(editing?.amount === undefined ? '' : String(editing.amount))
   const [error, setError] = useState<string | null>(null)
   // A write in flight — a second press would send it twice.
   const [saving, setSaving] = useState(false)
+
+  const group = goalGroups.find((g) => g.goals.some((goal) => goal.id === pursuitId))
+  // A linked goal whose page has not loaded is kept as it is, amount included,
+  // rather than silently unlinked by a save.
+  const unknown = Boolean(pursuitId) && !group
+  const money = group ? group.money : unknown && editing?.amount !== undefined
+  const typed = parseAmount(amount)
 
   const form: RoutineForm = {
     label,
@@ -57,6 +85,8 @@ function RoutineFields({ editing, types, onClose, onSubmit }: Omit<RoutineModalP
     weekdays,
     dayOfMonth: wholeNumber(dayOfMonth),
     interval: wholeNumber(interval),
+    pursuitId: pursuitId || undefined,
+    amount: money && typed !== null ? typed : undefined,
   }
 
   const toggleDay = (day: number) => {
@@ -184,6 +214,56 @@ function RoutineFields({ editing, types, onClose, onSubmit }: Omit<RoutineModalP
         />
       ) : null}
 
+      <label className={styles.field}>
+        <span className={styles.fieldLabel}>Counts toward</span>
+        <select
+          className={styles.select}
+          value={pursuitId}
+          onChange={(e) => {
+            setPursuitId(e.target.value)
+            setError(null)
+          }}
+        >
+          <option value="">No goal</option>
+          {unknown ? <option value={pursuitId}>The goal it is linked to</option> : null}
+          {goalGroups.map((g) =>
+            g.goals.length ? (
+              <optgroup key={g.label} label={g.label}>
+                {g.goals.map((goal) => (
+                  <option key={goal.id} value={goal.id}>
+                    {goal.name}
+                  </option>
+                ))}
+              </optgroup>
+            ) : null,
+          )}
+        </select>
+        {pursuitId ? (
+          <span className={styles.hint}>
+            {money
+              ? 'Ticking it ticks the goal’s next unpaid payment; unticking takes it back.'
+              : 'The goal’s card shows how consistently you tick it.'}
+          </span>
+        ) : null}
+      </label>
+
+      {pursuitId && money ? (
+        <Input
+          label={`Amount (${symbol})`}
+          type="number"
+          inputMode="decimal"
+          min={0}
+          step="0.01"
+          value={amount}
+          placeholder="Optional"
+          onChange={(e) => {
+            setAmount(e.target.value)
+            setError(null)
+          }}
+          trailing="Added once no payments are left"
+        />
+      ) : null}
+
       <span className={styles.summary}>
         {scheduleText(form)}
         {editing ? '. Past days keep what they had; today follows if you have not touched it.' : ', starting today.'}
@@ -208,7 +288,14 @@ function RoutineFields({ editing, types, onClose, onSubmit }: Omit<RoutineModalP
 }
 
 /** Create a recurring task, or edit one. Keyed on the routine so switching edits starts fresh. */
-export function RoutineModal({ open, editing, types, onClose, onSubmit }: RoutineModalProps) {
+export function RoutineModal({
+  open,
+  editing,
+  types,
+  goalGroups,
+  onClose,
+  onSubmit,
+}: RoutineModalProps) {
   return (
     <Modal
       open={open}
@@ -224,6 +311,7 @@ export function RoutineModal({ open, editing, types, onClose, onSubmit }: Routin
         key={editing?.id ?? 'new'}
         editing={editing}
         types={types}
+        goalGroups={goalGroups}
         onClose={onClose}
         onSubmit={onSubmit}
       />

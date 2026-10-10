@@ -371,8 +371,10 @@ The wiring is nearly done; these are features. One branch each, named here.
 ### ~~`feature/recurring-tasks`~~ — built
 
 Routines on the task types page fill each day with unticked tasks, missed
-days included. See "Recurring tasks" in PROJECT.md. Previewing planned copies
-on future days in the week view is still open.
+days included. A routine can also count toward a goal: ticking its copy pays a
+money goal, and every linked goal shows the routine as a habit with a 30-day
+record. See "Recurring tasks" and "Goal links" in PROJECT.md. Previewing
+planned copies on future days in the week view is still open.
 
 ### `feature/day-history` — see the past, and fix it
 
@@ -412,5 +414,6 @@ days of retention is a cron line.
   something actually delivers one. That is the reminder-delivery feature, which
   needs outgoing email first.
 
-**Recurring tasks are in**, so a day no longer starts as a blank list. Next in
+**Recurring tasks are in**, so a day no longer starts as a blank list, and a
+ticked one can move a goal. Next in
 value: `feature/day-history`, so a forgotten day can be fixed after the fact.

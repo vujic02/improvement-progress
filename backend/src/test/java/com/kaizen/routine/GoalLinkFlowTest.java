@@ -135,7 +135,62 @@ class GoalLinkFlowTest {
         pursuits(token, "growth")
                 .andExpect(jsonPath("$[0].habits[0].done").value(2))
                 .andExpect(jsonPath("$[0].habits[0].streak").value(2))
-                .andExpect(jsonPath("$[0].habits[0].lastMissed").value(today.minusDays(3).toString()));
+                .andExpect(jsonPath("$[0].habits[0].lastMissed").value(today.minusDays(3).toString()))
+                // Every run is listed among the steps, newest first, ticked or not.
+                .andExpect(jsonPath("$[0].runs.length()").value(4))
+                .andExpect(jsonPath("$[0].runs[0].day").value(today.toString()))
+                .andExpect(jsonPath("$[0].runs[0].label").value("Eat clean"))
+                .andExpect(jsonPath("$[0].runs[0].done").value(false))
+                .andExpect(jsonPath("$[0].runs[1].done").value(true))
+                .andExpect(jsonPath("$[0].runs[0].amount").doesNotExist());
+
+        // Ticking the rest leaves four ticked: only the last three stay listed.
+        for (int back : new int[] {0, 3}) {
+            String id = JsonPath.<net.minidev.json.JSONArray>read(days,
+                    "$[?(@.day == '%s')].id".formatted(today.minusDays(back))).get(0).toString();
+            toggle(token, id);
+        }
+        pursuits(token, "growth")
+                .andExpect(jsonPath("$[0].runs.length()").value(3))
+                .andExpect(jsonPath("$[0].runs[2].day").value(today.minusDays(2).toString()));
+    }
+
+    @Test
+    void aMoneyGoalListsARunOnlyWhenItIsAPaymentOfItsOwn() throws Exception {
+        String token = register("link-run@kaizen.app");
+        String goal = goal(token, "savings", """
+                {"name":"Buffer","kind":"saving","target":1000,"createdAt":"%s","targetAt":"%s"}
+                """.formatted(today, today.plusYears(1)));
+        send(token, "/api/pursuits/" + goal + "/steps", """
+                {"amount":500,"count":1}
+                """).andExpect(status().isOk());
+        send(token, "/api/routines?today=" + today, """
+                {"label":"Put money aside","typeId":"money","cadence":"daily","pursuitId":"%s","amount":50}
+                """.formatted(goal)).andExpect(status().isOk());
+        String copy = onlyCopy(token);
+
+        // A payment step is waiting: the tick will go to it, so the run is not a step of its own.
+        pursuits(token, "savings").andExpect(jsonPath("$[0].runs.length()").value(0));
+        toggle(token, copy);
+        pursuits(token, "savings")
+                .andExpect(jsonPath("$[0].steps[0].done").value(true))
+                .andExpect(jsonPath("$[0].runs.length()").value(0));
+
+        // No step left: the run is its own payment, for the routine's amount.
+        toggle(token, copy);
+        mvc.perform(patch("/api/pursuits/" + goal + "/steps/" + JsonPath.<String>read(
+                pursuits(token, "savings").andReturn().getResponse().getContentAsString(), "$[0].steps[0].id"))
+                .header("Authorization", "Bearer " + token)).andExpect(status().isOk());
+        pursuits(token, "savings")
+                .andExpect(jsonPath("$[0].runs.length()").value(1))
+                .andExpect(jsonPath("$[0].runs[0].id").value(copy))
+                .andExpect(jsonPath("$[0].runs[0].done").value(false))
+                .andExpect(jsonPath("$[0].runs[0].amount").value(50));
+        toggle(token, copy);
+        pursuits(token, "savings")
+                .andExpect(jsonPath("$[0].saved").value(550))
+                .andExpect(jsonPath("$[0].runs[0].done").value(true))
+                .andExpect(jsonPath("$[0].runs[0].amount").value(50));
     }
 
     @Test

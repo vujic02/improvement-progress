@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { MAX_AMOUNT } from '../data/pursuits'
 import { DAYS_INTERVAL_MAX, WEEKS_INTERVAL_MAX, usesInterval, usesWeekdays } from '../data/routines'
 import type { Routine, RoutineForm } from '../data/routines'
 import { TASK_LABEL_MAX } from '../days/context'
@@ -35,6 +36,12 @@ function check(form: RoutineForm): Result {
       return { ok: false, reason: `Repeat every 2 to ${max} ${unit}.` }
     }
   }
+  if (form.pursuitId && form.amount !== undefined) {
+    if (!Number.isFinite(form.amount) || form.amount <= 0) {
+      return { ok: false, reason: 'Enter an amount above zero.' }
+    }
+    if (form.amount > MAX_AMOUNT) return { ok: false, reason: 'That amount is too large.' }
+  }
   return { ok: true }
 }
 
@@ -47,6 +54,9 @@ function body(form: RoutineForm) {
     weekdays: usesWeekdays(form.cadence) ? form.weekdays : undefined,
     dayOfMonth: form.cadence === 'month-day' ? form.dayOfMonth : undefined,
     interval: usesInterval(form.cadence) ? form.interval : undefined,
+    // Left out, the server unlinks it — the form is the whole routine.
+    pursuitId: form.pursuitId || undefined,
+    amount: form.pursuitId ? form.amount : undefined,
   }
 }
 

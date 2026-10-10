@@ -160,6 +160,49 @@ week cards and the streak read them without knowing routines exist.
 - Up to **50** routines per account. Routine copies carry a small repeat icon
   in today's list.
 
+#### Goal links
+
+A routine can count toward one goal — "Put 500 aside, monthly" toward a savings
+goal, "Eat clean, daily" toward a nutrition goal. Picked under "Counts toward"
+in the routine modal; `routines.pursuit_id`, added in `V7`. The rules live in
+`GoalLinks`, which depends on repositories only so the day, pursuit and routine
+services can all use it without depending on each other.
+
+- **Ticking a copy pays a money goal.** It ticks the goal's next unpaid payment
+  step, which moves the balance. With no unpaid step left it adds the routine's
+  own optional `amount` instead; with neither, the tick pays nothing.
+- **Unticking undoes exactly that.** The copy remembers what it paid
+  (`day_tasks.paid_step_id` or `paid_amount`), so an untick reverses that and
+  nothing else. A step already unticked on the goal card is left alone, and the
+  balance clamps at zero as it does everywhere.
+- **Growth goals and dreams are read, not written.** Their link pays nothing;
+  it only feeds the record below. An `amount` on one is refused.
+- **Every goal response carries `habits`:** each linked routine with `done` and
+  `due` over the last **30 days**, a `streak` of consecutive runs ticked (an
+  unticked today does not break it), `dueToday` and `lastMissed`. Counted from
+  the routine's copies, so it reaches back only as far as the 62-day backfill.
+  The card shows them in a "Habits" block.
+- **Runs show up among the steps.** Every goal response also carries `runs`:
+  the linked routines' day copies, each appearing on the card the day it is
+  filled in. All unticked ones are listed, plus the last **3** ticked per
+  routine, newest first, so a daily task stays a short list. A run is the day
+  task itself — ticking it on the card ticks it in that day's list, and the
+  other way round. Runs are **shown, not counted**: a daily task never
+  finishes, so the progress bar stays with the steps that were written down.
+- **A money goal lists a run only when it is a payment of its own.** While an
+  unpaid payment step is waiting, the tick goes to that step and the run is not
+  listed twice. With none left, the run appears as a step for the routine's
+  `amount`.
+- **`GET /api/pursuits` takes `?today=`** and fills in the routines first, so a
+  habit counts today's copy even when the days have not been read yet. Write
+  responses count from the server's today.
+- **A goal changes from outside its own page.** So each `PursuitsProvider`
+  fetches again, quietly, whenever a linked routine or one of its copies
+  changes. All three areas refetch, not only the one the goal is in.
+- **Deleting a goal unlinks its routines** rather than deleting them — the task
+  is still worth a tick. Removing a payment step clears it from the copy that
+  paid it; the money stays in the balance.
+
 ## Pursuits — savings and self-improvement
 
 A **pursuit** is anything worked towards over time. Two pages are built on the
